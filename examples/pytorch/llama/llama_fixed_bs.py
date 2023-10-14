@@ -70,7 +70,7 @@ class RequestInstance:
             [self.request_id,len(self.context), self.context, 0.0, ending_tok, self.label, i, len(ending_tok)] for i,ending_tok in enumerate(self.endings)            
         ]
 
-def engineering_dataset(validation_zeroshot, tokenizer):
+def engineering_dataset(validation_zeroshot, tokenizer, max_batch_size):
     requests = []
     for i, row in tqdm(enumerate(validation_zeroshot)):
         temp = RequestInstance(i, row['activity_label'], row['ctx'], row['endings'], tokenizer, int(row['label']))
@@ -78,43 +78,10 @@ def engineering_dataset(validation_zeroshot, tokenizer):
 
     requests = sorted(requests, key=lambda x: x[1] + x[-1], reverse=True)
 
-    max_tokens_40 = []
-    max_tokens_80 = []
-    max_tokens_120 = []
-    max_tokens_170 = []
-
-    for r in requests:
-        ttt = r[1] + len(r[4])
-        if ttt <= 40:
-            max_tokens_40.append(r)
-        elif ttt <= 80:
-            max_tokens_80.append(r)
-        elif ttt <= 120:
-            max_tokens_120.append(r)
-        elif ttt <= 170:
-            max_tokens_170.append(r)
-
-    max_batch_sizes_config = [248, 126, 69, 60][::-1] # FT 우리가 수정한 기본 버전으로 돌렸을 때 max [496, 252, 138, 120]
-    
-    print("bucket: ",len(max_tokens_40), len(max_tokens_80), len(max_tokens_120), len(max_tokens_170))
-    for x,y in zip([max_tokens_40,max_tokens_80,max_tokens_120,max_tokens_170],max_batch_sizes_config[::-1]):
-        print(len(x), y, len(x)/y)
-
     final_reqs = []
-    
-    for i in range(len(max_batch_sizes_config)):
-        current_list = []
-        if i == 3:
-            current_list = max_tokens_40
-        elif i == 2:
-            current_list = max_tokens_80
-        elif i == 1:
-            current_list = max_tokens_120
-        elif i == 0:
-            current_list = max_tokens_170
+    for i in range(0, len(requests), max_batch_size):
+        final_reqs.append(requests[i:i+max_batch_size])
 
-        for j in range(0, len(current_list), max_batch_sizes_config[i]):
-            final_reqs.append(current_list[j:j+max_batch_sizes_config[i]])
     return final_reqs
 
 def calculate_accuracy(res):
@@ -186,7 +153,7 @@ def main():
                         help='path to the sample input file.')
     parser.add_argument('--start_id_file', type=str,
                         help='path to the start id file.')
-    parser.add_argument('--max_batch_size', type=int, default=8,
+    parser.add_argument('--max_batch_size', type=int, default=64,
                         help='max batch size.')
     parser.add_argument('--repetition_penalty', type=float, default=1.,
                         help='repetition penalty')
@@ -258,7 +225,7 @@ def main():
     final_reqs = []
     res = []
     validation_zeroshot = load_hellaswag()
-    final_reqs = engineering_dataset(validation_zeroshot, tokenizer)
+    final_reqs = engineering_dataset(validation_zeroshot, tokenizer, max_batch_size)
 
     # Prepare model.
     start_model = time.time()

@@ -19,6 +19,7 @@
 #include "src/fastertransformer/th_op/th_utils.h"
 #include "src/fastertransformer/utils/cuda_bf16_wrapper.h"
 #include "src/fastertransformer/utils/nccl_utils.h"
+#define PYBIND11_DETAILED_ERROR_MESSAGES
 
 namespace ft = fastertransformer;
 namespace th = torch;
@@ -34,6 +35,7 @@ public:
                          th::Tensor&              output_ids,
                          th::Tensor&              sequence_lengths,
                          th::Tensor&              cum_log_probs,
+                         th::Tensor&              output_log_probs,
                          const size_t             request_output_len,
                          const size_t             beam_width,
                          th::optional<th::Tensor> top_k_opt,
@@ -43,7 +45,8 @@ public:
                          th::optional<th::Tensor> len_penalty_opt,
                          th::optional<th::Tensor> repetition_penalty_opt,
                          th::optional<th::Tensor> random_seed_opt,
-                         th::optional<int64_t>    return_cum_log_probs_opt) = 0;
+                         th::optional<int64_t>    return_cum_log_probs_opt,
+                         th::optional<int64_t>    return_output_log_probs) = 0;
 };
 
 template<typename T>
@@ -139,6 +142,7 @@ public:
                  th::Tensor&              output_ids,
                  th::Tensor&              sequence_lengths,
                  th::Tensor&              cum_log_probs,
+                 th::Tensor&              output_log_probs,
                  const size_t             request_output_len,
                  const size_t             beam_width,
                  th::optional<th::Tensor> top_k_opt,
@@ -148,9 +152,11 @@ public:
                  th::optional<th::Tensor> len_penalty_opt,
                  th::optional<th::Tensor> repetition_penalty_opt,
                  th::optional<th::Tensor> random_seed_opt,
-                 th::optional<int64_t>    return_cum_log_probs_opt) override
+                 th::optional<int64_t>    return_cum_log_probs_opt,
+                 th::optional<int64_t>    return_output_log_probs_opt) override
     {
         int return_cum_log_probs = return_cum_log_probs_opt.has_value() ? (int)return_cum_log_probs_opt.value() : 0;
+        int return_output_log_probs = return_output_log_probs_opt.has_value() ? (int)return_output_log_probs_opt.value() : 0;
 
         auto           stream       = at::cuda::getCurrentCUDAStream().stream();
         cublasHandle_t cublasHandle = at::cuda::getCurrentCUDABlasHandle();
@@ -226,7 +232,7 @@ public:
             input_tensors.insert(
                 {"beam_search_diversity_rate",
                  convert_tensor<float>(beam_search_diversity_rate_opt.value(), ft::MemoryType::MEMORY_CPU)});
-        }
+        } // we don't use beam search for hellaswag evaluation
         if (top_p_opt.has_value()) {
             input_tensors.insert(
                 {"runtime_top_p", convert_tensor<float>(top_p_opt.value(), ft::MemoryType::MEMORY_CPU)});
@@ -272,7 +278,15 @@ public:
                                               std::vector<size_t>{request_batch_size, beam_width},
                                               get_ptr<float>(cum_log_probs)}});
         }
-
+        // output_log_probs [batch_size, beam_width, request_output_seq_len, vocab_size] must be float*.
+        if (return_output_log_probs > 0 ){
+            output_tensors.insert({"logits_buf",
+                                   ft::Tensor{ft::MEMORY_GPU,
+                                              ft::TYPE_FP32,
+                                              std::vector<size_t>{request_batch_size * beam_width, (size_t)max_input_length, 32000},
+                                              get_ptr<half>(output_log_probs)}});
+        }
+        
         try {
             llama.forward(&output_tensors, &input_tensors, &Llama_weights_);
         }
@@ -344,7 +358,8 @@ public:
                                th::optional<th::Tensor> len_penalty_opt,
                                th::optional<th::Tensor> repetition_penalty_opt,
                                th::optional<th::Tensor> random_seed_opt,
-                               th::optional<int64_t>    return_cum_log_probs_opt);
+                               th::optional<int64_t>    return_cum_log_probs_opt,
+                               th::optional<int64_t>    return_output_log_probs_opt);
 
 private:
     const at::ScalarType    st_;

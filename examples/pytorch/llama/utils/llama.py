@@ -26,6 +26,7 @@ import torch.nn as nn
 import numpy as np
 import torch.distributed as dist
 
+import time
 str_type_map = {"fp32": torch.float32, "fp16": torch.float16}
 
 class LlamaWeights(object):
@@ -125,6 +126,10 @@ class LlamaWeights(object):
         def is_load(i):
             return i >= self.layers_per_device * pipeline_para_rank and i < self.layers_per_device * (pipeline_para_rank + 1)
 
+        print("\n\n========== LOAD ==========")
+        print(f"tensor {tensor_para_rank}, pipeline {pipeline_para_rank}")
+        print("==========================")
+
         file_names = [
                       None,   # 0
                       "input_layernorm.weight",  # 1
@@ -156,12 +161,20 @@ class LlamaWeights(object):
         w.append(torch.from_numpy(np.fromfile(ckpt_path + "/model.final_layernorm.weight.bin", dtype=self.weights_data_type)).to(self.inference_data_type))
         w.append(torch.from_numpy(np.fromfile(ckpt_path + "/model.lm_head.weight.bin", dtype=self.weights_data_type)).to(self.inference_data_type))
 
+        total = len(w) - 4 # For non-transformer layers
         try:
-            for i in range(len(w)):
+            # For transformer layers
+            for i in range(total):
+                layer = i%self.layer_num # single gpu must load a portion of the layers
                 if w[i].nelement() > 0:
                     self.w[i] = w[i].reshape(self.w[i].shape)
-                # else:
-                #     self.w[i] = w[i]
+                elif not is_load(layer):
+                    self.w[i] = w[i]
+            
+            # For non-transformer layers
+            for i in range(total,len(w)):
+                self.w[i] = w[i].reshape(self.w[i].shape)
+                
         except RuntimeError:
             raise RuntimeError(
                 f"head_num, size_per_head, vocab_size, and max_seq_len must be the same as the ones during training "
@@ -224,7 +237,8 @@ class Llama(nn.Module):
         torch.cuda.set_device(self.device)
 
         world_size = dist.get_world_size()
-        # print(tensor_para_size * pipeline_para_size)
+        print("world size is " + str(world_size))
+        print(str(tensor_para_size * pipeline_para_size) + f"<<- TP({tensor_para_size}) * PP({pipeline_para_size})")
         assert world_size == tensor_para_size * pipeline_para_size, "tensor_para_size * pipeline_para_size must be equal to world_size."
 
         self.tensor_para_rank = self.rank % self.tensor_para_size
@@ -236,7 +250,7 @@ class Llama(nn.Module):
     def load(self, ckpt_path):
         is_load = self.weights.load(ckpt_path, tensor_para_rank=self.tensor_para_rank,
                                     pipeline_para_rank=self.pipeline_para_rank)
-        self.cuda()
+        self.half()
         return is_load
 
     def half(self):
@@ -249,13 +263,12 @@ class Llama(nn.Module):
         if self.build_model:
             del self.model
             self.build_model = False
-        
         self.model = torch.classes.FasterTransformer.LlamaOp(self.head_num, self.size_per_head, self.inter_size,
                                                                self.layer_num, self.vocab_size, self.rotary_embedding_dim, self.layernorm_eps,
                                                                self.start_id, self.end_id, self.tensor_para_size, self.pipeline_para_size,
                                                                self.max_seq_len, self.use_gptj_residual, self.weights.w)
-
         self.build_model = True
+        torch.cuda.empty_cache()
 
     def forward(self,
                 start_ids: torch.Tensor,
@@ -273,16 +286,21 @@ class Llama(nn.Module):
                 return_cum_log_probs=0):
         if not self.build_model:
             self.cuda()
+            torch.cuda.empty_cache()  # clean cache for model weight preprocessing
         input_len = start_ids.size(1)
         assert input_len > 0, "input len must be larger than zero. For an unconditional case, use start_id as the first token."
 
         # Inputs to device
         input_ids = start_ids.cuda(self.device)
         input_lengths = start_lengths.cuda(self.device)
-        # outputs: output_ids, output_lengths, output_cum_log_probs (optional)
+        
+        # Bug fixed. Third argument must be <int>
+        outlen = output_len
+        if type(output_len) != int: outlen = int(output_len[0])
+        
         outputs = self.model.forward(input_ids,
                                      input_lengths,
-                                     output_len,
+                                     outlen, #output_len
                                      beam_width, # optional, can be None
                                      top_k, # optional, can be None
                                      top_p, # optional, can be None
@@ -291,17 +309,19 @@ class Llama(nn.Module):
                                      len_penalty, # optional, can be None
                                      repetition_penalty, # optional, can be None
                                      random_seed, # optional, can be None
-                                     return_cum_log_probs) # optional, can be None
+                                     return_cum_log_probs,# optional, can be None
+                                     1) # optional, output_log_probs
 
         if return_cum_log_probs == 0:
-            output_ids, output_lengths = outputs
+            output_ids, output_lengths, output_log_probs = outputs
         else:
-            output_ids, output_lengths, output_cum_log_probs = outputs
+            output_ids, output_lengths, output_cum_log_probs, output_log_probs = outputs
+            
         if return_output_length:
             if return_cum_log_probs > 0:
-                return output_ids, output_lengths, output_cum_log_probs
+                return output_ids, output_lengths, output_cum_log_probs, output_log_probs
             else:
-                return output_ids, output_lengths
+                return output_ids, output_lengths, output_log_probs
         else:
             return output_ids
 

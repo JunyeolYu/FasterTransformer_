@@ -107,8 +107,8 @@ void Llama<T>::allocateBuffer(
             (T*)(allocator_->reMalloc(padded_embedding_kernel_, sizeof(T) * hidden_units_ * vocab_size_padded_, true));
         padded_embedding_kernel_ptr_ = padded_embedding_kernel_;
 
-        padded_embedding_bias_ =
-            (T*)(allocator_->reMalloc(padded_embedding_bias_, sizeof(T) * vocab_size_padded_, true));
+        // padded_embedding_bias_ =
+        //     (T*)(allocator_->reMalloc(padded_embedding_bias_, sizeof(T) * vocab_size_padded_, true));
     }
 
     input_attention_mask_ = (T*)(allocator_->reMalloc(
@@ -116,11 +116,11 @@ void Llama<T>::allocateBuffer(
     decoder_input_buf_ = (T*)(allocator_->reMalloc(decoder_input_buf_, sizeof(T) * batchxbeam * hidden_units_, false));
     decoder_output_buf_ =
         (T*)(allocator_->reMalloc(decoder_output_buf_, sizeof(T) * batchxbeam * hidden_units_, false));
-    normed_decoder_output_buf_ =
-        (T*)(allocator_->reMalloc(normed_decoder_output_buf_, sizeof(T) * batchxbeam * hidden_units_, false));
-    logits_buf_ = (float*)(allocator_->reMalloc(logits_buf_, sizeof(float) * batchxbeam * vocab_size_padded_, false));
-    nccl_logits_buf_ =
-        (float*)(allocator_->reMalloc(nccl_logits_buf_, sizeof(float) * batchxbeam * vocab_size_padded_, false));
+    // normed_decoder_output_buf_ =
+    //     (T*)(allocator_->reMalloc(normed_decoder_output_buf_, sizeof(T) * batchxbeam * hidden_units_, false));
+    // logits_buf_ = (float*)(allocator_->reMalloc(logits_buf_, sizeof(float) * batchxbeam * vocab_size_padded_, false));
+    // nccl_logits_buf_ =
+    //     (float*)(allocator_->reMalloc(nccl_logits_buf_, sizeof(float) * batchxbeam * vocab_size_padded_, false));
     cum_log_probs_    = (float*)(allocator_->reMalloc(cum_log_probs_, sizeof(float) * batchxbeam, false));
     finished_buf_     = (bool*)(allocator_->reMalloc(finished_buf_, sizeof(bool) * batchxbeam, false));
     h_finished_buf_   = new bool[batchxbeam];
@@ -143,15 +143,15 @@ void Llama<T>::allocateBuffer(
     tiled_input_ids_buf_ =
         (int*)(allocator_->reMalloc(tiled_input_ids_buf_, sizeof(int) * batchxbeam * max_input_len, true));
     tiled_input_lengths_buf_ = (int*)(allocator_->reMalloc(tiled_input_lengths_buf_, sizeof(int) * batchxbeam, true));
-    tiled_total_padding_count_ =
-        (int*)allocator_->reMalloc(tiled_total_padding_count_, batchxbeam * sizeof(int), false);
+    // tiled_total_padding_count_ =
+    //     (int*)allocator_->reMalloc(tiled_total_padding_count_, batchxbeam * sizeof(int), false);
 
     transposed_output_ids_buf_ =
         (int*)(allocator_->reMalloc(transposed_output_ids_buf_, sizeof(int) * batchxbeam * max_seq_len, true));
     output_ids_buf_ = (int*)(allocator_->reMalloc(output_ids_buf_, sizeof(int) * batchxbeam * max_seq_len, true));
     parent_ids_buf_ = (int*)(allocator_->reMalloc(parent_ids_buf_, sizeof(int) * batchxbeam * max_seq_len, true));
     seq_limit_len_  = (uint32_t*)(allocator_->reMalloc(seq_limit_len_, sizeof(uint32_t) * batch_size, false));
-    masked_tokens_ = (bool*)(allocator_->reMalloc(masked_tokens_, sizeof(bool) * batchxbeam * max_cache_seq_len, true));
+    // masked_tokens_ = (bool*)(allocator_->reMalloc(masked_tokens_, sizeof(bool) * batchxbeam * max_cache_seq_len, true));
 
     start_ids_buf_ = (int*)(allocator_->reMalloc(start_ids_buf_, sizeof(int) * batch_size, false));
     end_ids_buf_   = (int*)(allocator_->reMalloc(end_ids_buf_, sizeof(int) * batch_size, false));
@@ -160,10 +160,14 @@ void Llama<T>::allocateBuffer(
         context_decoder_input_buf_, sizeof(T) * batchxbeam * max_input_len * hidden_units_, false));
     context_decoder_output_buf_ = (T*)(allocator_->reMalloc(
         context_decoder_output_buf_, sizeof(T) * batchxbeam * max_input_len * hidden_units_, false));
-    output_log_probs_buf_ =
-        (float*)(allocator_->reMalloc(output_log_probs_buf_, sizeof(float) * batchxbeam * max_seq_len, false));
+    normed_context_decoder_output_buf_ = (T*)(allocator_->reMalloc(
+        normed_context_decoder_output_buf_, sizeof(T) * batchxbeam * max_input_len * hidden_units_, false));
+    lm_head_context_decoder_output_buf_ = (T*)(allocator_->reMalloc(
+        lm_head_context_decoder_output_buf_, sizeof(T) * vocab_size_padded_ * batchxbeam * max_input_len , false));
+    // output_log_probs_buf_ =
+    //     (float*)(allocator_->reMalloc(output_log_probs_buf_, sizeof(float) * batchxbeam * max_seq_len, false));
 
-    generation_should_stop_ = (bool*)allocator_->reMalloc(generation_should_stop_, sizeof(bool), true, true);
+    // generation_should_stop_ = (bool*)allocator_->reMalloc(generation_should_stop_, sizeof(bool), true, true);
 
     is_allocate_buffer_ = true;
 }
@@ -175,15 +179,15 @@ void Llama<T>::freeBuffer()
         if (vocab_size_ != vocab_size_padded_) {
             padded_embedding_kernel_ptr_ = nullptr;
             allocator_->free((void**)(&padded_embedding_kernel_));
-            allocator_->free((void**)(&padded_embedding_bias_));
+            // allocator_->free((void**)(&padded_embedding_bias_));
         }
 
         allocator_->free((void**)(&input_attention_mask_));
         allocator_->free((void**)(&decoder_input_buf_));
         allocator_->free((void**)(&decoder_output_buf_));
-        allocator_->free((void**)(&normed_decoder_output_buf_));
-        allocator_->free((void**)(&logits_buf_));
-        allocator_->free((void**)(&nccl_logits_buf_));
+        // allocator_->free((void**)(&normed_decoder_output_buf_));
+        // allocator_->free((void**)(&logits_buf_));
+        // allocator_->free((void**)(&nccl_logits_buf_));
         allocator_->free((void**)(&cum_log_probs_));
         allocator_->free((void**)(&finished_buf_));
         delete[] h_finished_buf_;
@@ -199,22 +203,24 @@ void Llama<T>::freeBuffer()
 
         allocator_->free((void**)(&tiled_input_ids_buf_));
         allocator_->free((void**)(&tiled_input_lengths_buf_));
-        allocator_->free((void**)(&tiled_total_padding_count_));
+        // allocator_->free((void**)(&tiled_total_padding_count_));
 
         allocator_->free((void**)(&transposed_output_ids_buf_));
         allocator_->free((void**)(&output_ids_buf_));
         allocator_->free((void**)(&parent_ids_buf_));
         allocator_->free((void**)(&seq_limit_len_));
-        allocator_->free((void**)(&masked_tokens_));
+        // allocator_->free((void**)(&masked_tokens_));
 
         allocator_->free((void**)(&start_ids_buf_));
         allocator_->free((void**)(&end_ids_buf_));
 
         allocator_->free((void**)(&context_decoder_input_buf_));
         allocator_->free((void**)(&context_decoder_output_buf_));
-        allocator_->free((void**)(&output_log_probs_buf_));
+        allocator_->free((void**)(&normed_context_decoder_output_buf_));
+        allocator_->free((void**)(&lm_head_context_decoder_output_buf_));
+        // allocator_->free((void**)(&output_log_probs_buf_));
 
-        allocator_->free((void**)(&generation_should_stop_), true);
+        // allocator_->free((void**)(&generation_should_stop_), true);
 
         is_allocate_buffer_ = false;
     }
@@ -579,8 +585,8 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
     // initialize the output ids and parent ids
     cudaMemsetAsync(output_ids_buf_, 0, sizeof(int) * batch_size * beam_width * max_seq_len, stream_);
     cudaMemsetAsync(parent_ids_buf_, 0, sizeof(int) * batch_size * beam_width * max_seq_len, stream_);
-    cudaMemsetAsync(masked_tokens_, false, sizeof(bool) * batch_size * beam_width * max_cache_seq_len, stream_);
-    cudaMemsetAsync(tiled_total_padding_count_, 0, sizeof(int) * batch_size * beam_width, stream_);
+    // cudaMemsetAsync(masked_tokens_, false, sizeof(bool) * batch_size * beam_width * max_cache_seq_len, stream_);
+    // cudaMemsetAsync(tiled_total_padding_count_, 0, sizeof(int) * batch_size * beam_width, stream_);
     if (beam_width > 1) {
         cudaMemsetAsync(cache_indirections_[0], 0, 2 * sizeof(int) * batch_size * beam_width * max_seq_len, stream_);
     }
@@ -765,305 +771,352 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
     if (vocab_size_ == vocab_size_padded_) {
         padded_embedding_kernel_ptr_ = gpt_weights->post_decoder_embedding.kernel;
     }
-    else {
-        cudaMemcpyAsync(padded_embedding_kernel_,
-                        gpt_weights->post_decoder_embedding.kernel,
-                        sizeof(T) * vocab_size_ * hidden_units_,
-                        cudaMemcpyDeviceToDevice,
-                        stream_);
-        cudaMemcpyAsync(padded_embedding_bias_,
-                        gpt_weights->post_decoder_embedding.bias,
-                        sizeof(T) * vocab_size_,
-                        cudaMemcpyDeviceToDevice,
-                        stream_);
-        sync_check_cuda_error();
-    }
+    // else {
+    //     cudaMemcpyAsync(padded_embedding_kernel_,
+    //                     gpt_weights->post_decoder_embedding.kernel,
+    //                     sizeof(T) * vocab_size_ * hidden_units_,
+    //                     cudaMemcpyDeviceToDevice,
+    //                     stream_);
+    //     cudaMemcpyAsync(padded_embedding_bias_,
+    //                     gpt_weights->post_decoder_embedding.bias,
+    //                     sizeof(T) * vocab_size_,
+    //                     cudaMemcpyDeviceToDevice,
+    //                     stream_);
+    //     sync_check_cuda_error();
+    // }
 
-    invokeMaskPaddingTokens(masked_tokens_,
-                            input_tensors->at("input_lengths").getPtr<const int>(),  // not_tiled
-                            tiled_prompt_lengths_buf_,
-                            max_cache_seq_len,
-                            max_input_length + max_prefix_prompt_length,
-                            0,
-                            batch_size,
-                            beam_width,
+    // invokeMaskPaddingTokens(masked_tokens_,
+    //                         input_tensors->at("input_lengths").getPtr<const int>(),  // not_tiled
+    //                         tiled_prompt_lengths_buf_,
+    //                         max_cache_seq_len,
+    //                         max_input_length + max_prefix_prompt_length,
+    //                         0,
+    //                         batch_size,
+    //                         beam_width,
+    //                         stream_);
+    if (pipeline_para_.rank_ == pipeline_para_.world_size_ - 1) {
+        // LlamaRMSNorm()
+        invokeGeneralT5LayerNorm(normed_context_decoder_output_buf_,   // output
+                            context_decoder_output_buf_,               // input
+                            gpt_weights->post_decoder_layernorm.gamma, // weight
+                            (const T*)nullptr,                         // beta, we don't need
+                            layernorm_eps_, 
+                            batch_size * beam_width * max_input_length,// m
+                            hidden_units_,                             // n
                             stream_);
 
-    for (int step = max_input_length; step < (int)max_output_seq_len; step++) {
-        const int src_indir_idx = (step - max_input_length) % 2;
-        const int tgt_indir_idx = 1 - src_indir_idx;
-
-        const size_t local_batch_size = getLocalBatchSize(batch_size, 1, pipeline_para_.world_size_);
-        FT_CHECK(batch_size % local_batch_size == 0);
-        const size_t iteration_num = batch_size / local_batch_size;
-        *generation_should_stop_   = true;
-
-        for (uint ite = 0; ite < iteration_num; ++ite) {
-            const int id_offset               = ite * local_batch_size * beam_width;
-            const int hidden_units_offset     = id_offset * hidden_units_;
-            const int vocab_size_units_offset = id_offset * vocab_size_padded_;
-
-            if (!(max_input_length > 1 && step == max_input_length)) {
-                if (pipeline_para_.rank_ == 0) {
-                    invokeEmbeddingLookupPosEncodingPadCount(decoder_input_buf_ + hidden_units_offset,
-                                                             gpt_weights->pre_decoder_embedding_table,
-                                                             gpt_weights->position_encoding_table,
-                                                             output_ids_buf_ + id_offset,
-                                                             tiled_total_padding_count_ + id_offset,
-                                                             local_batch_size * beam_width,
-                                                             hidden_units_,
-                                                             (T)(1.0f),
-                                                             step - 1,
-                                                             batch_size * beam_width,
-                                                             0,
-                                                             stream_);
-                    sync_check_cuda_error();
-                }
-                std::unordered_map<std::string, Tensor> decoder_input_tensors{
-                    {"decoder_input",
-                     Tensor{MEMORY_GPU,
-                            data_type,
-                            {local_batch_size * beam_width, hidden_units_},
-                            decoder_input_buf_ + hidden_units_offset}},
-                    {"finished",
-                     Tensor{MEMORY_GPU, TYPE_BOOL, {local_batch_size * beam_width}, finished_buf_ + id_offset}},
-                    {"sequence_lengths",
-                     Tensor{MEMORY_GPU, TYPE_INT32, {local_batch_size * beam_width}, sequence_lengths_ + id_offset}},
-                    {"total_padding_tokens",
-                     Tensor{MEMORY_GPU,
-                            TYPE_INT32,
-                            {local_batch_size * beam_width},
-                            tiled_total_padding_count_ + id_offset}},
-                    {"d_prefix_prompt_lengths",
-                     Tensor{MEMORY_GPU,
-                            TYPE_INT32,
-                            {local_batch_size},
-                            has_prefix_prompt_ ? (tiled_prompt_lengths_buf_ + id_offset) : nullptr}},
-                    {"max_prefix_prompt_length", Tensor{MEMORY_CPU, TYPE_INT32, {1}, &max_prefix_prompt_length}},
-                    {"max_input_length", Tensor{MEMORY_CPU, TYPE_INT32, {1}, &max_input_length}},
-                    {"step", Tensor{MEMORY_CPU, TYPE_INT32, {1}, &step}},
-                    {"ite", Tensor{MEMORY_CPU, TYPE_INT32, {1}, &ite}},
-                    {"cache_indirection",
-                     Tensor{MEMORY_GPU,
-                            TYPE_INT32,
-                            {local_batch_size, beam_width, max_output_seq_len},
-                            beam_width > 1 ? cache_indirections_[src_indir_idx] + id_offset * max_output_seq_len :
-                                             nullptr}},
-                    {"masked_tokens",
-                     Tensor{MEMORY_GPU,
-                            TYPE_BOOL,
-                            {local_batch_size * beam_width, max_cache_seq_len},
-                            masked_tokens_ + id_offset * max_cache_seq_len}}};
-                std::unordered_map<std::string, Tensor> decoder_output_tensors{
-                    {"decoder_output",
-                     Tensor{MEMORY_GPU,
-                            data_type,
-                            {local_batch_size * beam_width, hidden_units_},
-                            decoder_output_buf_ + hidden_units_offset}},
-                    {"key_cache", Tensor{MEMORY_GPU, data_type, self_k_cache_shape, key_cache_}},
-                    {"value_cache", Tensor{MEMORY_GPU, data_type, self_v_cache_shape, value_cache_}}};
-                gpt_decoder_->forward(
-                    &decoder_output_tensors, &decoder_input_tensors, &gpt_weights->decoder_layer_weights);
-            }
-
-            if (pipeline_para_.rank_ == pipeline_para_.world_size_ - 1) {
-                invokeGeneralT5LayerNorm(normed_decoder_output_buf_ + hidden_units_offset,
-                                         decoder_output_buf_ + hidden_units_offset,
-                                         gpt_weights->post_decoder_layernorm.gamma,
-                                         (const T*)nullptr,
-                                         layernorm_eps_,
-                                         local_batch_size * beam_width,
-                                         hidden_units_,
-                                         stream_);
-                sync_check_cuda_error();
-
-                if (tensor_para_.world_size_ == 1) {
-                    float alpha = 1.0f;
-                    float beta  = 0.0f;
-                    cublas_wrapper_->Gemm(CUBLAS_OP_T,
-                                          CUBLAS_OP_N,
-                                          vocab_size_padded_,  // n
-                                          local_batch_size * beam_width,
-                                          hidden_units_,  // k
-                                          &alpha,
-                                          padded_embedding_kernel_ptr_,
-                                          gemm_data_type,
-                                          hidden_units_,  // k
-                                          normed_decoder_output_buf_ + hidden_units_offset,
-                                          gemm_data_type,
-                                          hidden_units_,  // k
-                                          &beta,
-                                          logits_buf_ + vocab_size_units_offset,
-                                          CUDA_R_32F,
-                                          vocab_size_padded_, /* n */
-                                          CUDA_R_32F,
-                                          cublasGemmAlgo_t(-1));
-                }
-                else {
-                    FT_CHECK(vocab_size_padded_ % tensor_para_.world_size_ == 0);
-                    const int local_vocab_size = vocab_size_padded_ / tensor_para_.world_size_;
-                    float     alpha            = 1.0f;
-                    float     beta             = 0.0f;
-                    cublas_wrapper_->Gemm(CUBLAS_OP_T,
-                                          CUBLAS_OP_N,
-                                          local_vocab_size,  // n
-                                          local_batch_size * beam_width,
-                                          hidden_units_,  // k
-                                          &alpha,
-                                          padded_embedding_kernel_ptr_
-                                              + tensor_para_.rank_ * local_vocab_size * hidden_units_,
-                                          gemm_data_type,
-                                          hidden_units_,  // k
-                                          normed_decoder_output_buf_ + hidden_units_offset,
-                                          gemm_data_type,
-                                          hidden_units_,  // k
-                                          &beta,
-                                          nccl_logits_buf_ + vocab_size_units_offset
-                                              + tensor_para_.rank_ * local_batch_size * beam_width * local_vocab_size,
-                                          CUDA_R_32F,
-                                          local_vocab_size, /* n */
-                                          CUDA_R_32F,
-                                          cublasGemmAlgo_t(-1));
-                    ftNcclAllGather(nccl_logits_buf_ + vocab_size_units_offset,
-                                    nccl_logits_buf_ + vocab_size_units_offset,
-                                    local_batch_size * beam_width * local_vocab_size,
-                                    tensor_para_.rank_,
-                                    tensor_para_,
-                                    stream_);
-                    invokeTransposeAxis01(logits_buf_ + vocab_size_units_offset,
-                                          nccl_logits_buf_ + vocab_size_units_offset,
-                                          tensor_para_.world_size_,
-                                          local_batch_size * beam_width,
-                                          local_vocab_size,
-                                          stream_);
-                }
-
-                int                                     tmp_local_batch_size       = local_batch_size;
-                bool                                    is_initialize_random_table = step == max_input_length;
-                std::unordered_map<std::string, Tensor> dynamic_decode_input_tensors{
-                    {"logits",
-                     Tensor{MEMORY_GPU, TYPE_FP32, {batch_size, beam_width, vocab_size_padded_}, logits_buf_}},
-                    // {"embedding_bias", Tensor{MEMORY_GPU, data_type, {vocab_size_padded_}, nullptr}},
-                    {"step", Tensor{MEMORY_CPU, TYPE_INT32, {1}, &step}},
-                    {"max_input_length", Tensor{MEMORY_CPU, TYPE_INT32, {1}, &max_input_length}},
-                    {"input_lengths",
-                     Tensor{MEMORY_GPU, TYPE_INT32, {batch_size, beam_width}, tiled_input_lengths_buf_}},
-                    {"sequence_limit_length", Tensor{MEMORY_GPU, TYPE_UINT32, {batch_size}, seq_limit_len_}},
-                    {"ite", Tensor{MEMORY_CPU, TYPE_UINT32, {1}, &ite}},
-                    {"src_cache_indirection",
-                     Tensor{MEMORY_GPU,
-                            TYPE_INT32,
-                            {local_batch_size, beam_width, max_output_seq_len},
-                            cache_indirections_[src_indir_idx] + id_offset * max_output_seq_len}},
-                    {"local_batch_size", Tensor{MEMORY_CPU, TYPE_INT32, {1}, &tmp_local_batch_size}},
-                    {"end_id", Tensor{MEMORY_GPU, TYPE_INT32, {batch_size}, end_ids_buf_}},
-                    {"is_initialize_random_table", Tensor{MEMORY_CPU, TYPE_BOOL, {1}, &is_initialize_random_table}}};
-
-                for (auto t = input_tensors->begin(); t != input_tensors->end(); ++t) {
-                    if (dynamic_decode_input_tensors.find(t->first) == dynamic_decode_input_tensors.end()) {
-                        dynamic_decode_input_tensors.insert(*t);
-                    }
-                }
-
-                // common outputs
-                bool                                    subbatch_should_stop = false;
-                std::unordered_map<std::string, Tensor> dynamic_decode_output_tensors{
-                    {"output_ids",
-                     Tensor{MEMORY_GPU, TYPE_INT32, {max_seq_len, batch_size, beam_width}, output_ids_buf_}},
-                    {"finished", Tensor{MEMORY_GPU, TYPE_BOOL, {batch_size * beam_width}, finished_buf_}},
-                    // cum_log_probs is necessary for beam search, while it is optional for sampling.
-                    {"cum_log_probs",
-                     Tensor{MEMORY_GPU,
-                            TYPE_FP32,
-                            {batch_size * beam_width},
-                            ((beam_width > 1) || (output_tensors->count("cum_log_probs") > 0)) ? cum_log_probs_ :
-                                                                                                 nullptr}},
-                    {"output_log_probs",
-                     Tensor{MEMORY_GPU,
-                            TYPE_FP32,
-                            {max_seq_len, batch_size, beam_width},
-                            output_tensors->count("output_log_probs") > 0
-                                    && output_tensors->at("output_log_probs").data != nullptr ?
-                                output_log_probs_buf_ :
-                                nullptr}},
-                    {"parent_ids",
-                     Tensor{MEMORY_GPU, TYPE_INT32, {max_seq_len, batch_size, beam_width}, parent_ids_buf_}},
-                    {"sequence_length", Tensor{MEMORY_GPU, TYPE_INT32, {batch_size * beam_width}, sequence_lengths_}},
-                    {"tgt_cache_indirection",
-                     Tensor{MEMORY_GPU,
-                            TYPE_INT32,
-                            {local_batch_size, beam_width, max_output_seq_len},
-                            cache_indirections_[tgt_indir_idx] + id_offset * max_output_seq_len}},
-                    {"should_stop", Tensor{MEMORY_CPU, TYPE_BOOL, {1}, &subbatch_should_stop}}};
-
-                for (auto t = output_tensors->begin(); t != output_tensors->end(); ++t) {
-                    // Handle exceptions.
-                    if (t->first == "cum_log_probs" || t->first == "output_log_probs") {
-                        continue;
-                    }
-                    dynamic_decode_output_tensors.insert(*t);
-                }
-
-                dynamic_decode_layer_->forward(&dynamic_decode_output_tensors, &dynamic_decode_input_tensors);
-                *generation_should_stop_ &= subbatch_should_stop;
-            }
-        }
-
-        if (pipeline_para_.world_size_ > 1) {
-            ftNcclGroupStart();
-            ftNcclBroadCast(output_ids_buf_ + step * batch_size * beam_width,
-                            batch_size * beam_width,
-                            pipeline_para_.world_size_ - 1,
-                            pipeline_para_,
-                            stream_);
-
-            ftNcclBroadCast(
-                sequence_lengths_, batch_size * beam_width, pipeline_para_.world_size_ - 1, pipeline_para_, stream_);
-
-            ftNcclBroadCast(generation_should_stop_, 1, pipeline_para_.world_size_ - 1, pipeline_para_, stream_);
-
-            if (beam_width > 1) {
-                ftNcclBroadCast(cache_indirections_[tgt_indir_idx],
-                                batch_size * beam_width * max_output_seq_len,
-                                pipeline_para_.world_size_ - 1,
-                                pipeline_para_,
-                                stream_);
-            }
-            ftNcclGroupEnd();
-            // throw errors when detected
-            ftNcclStreamSynchronize(tensor_para_, pipeline_para_, stream_);
-            sync_check_cuda_error();
-        }
-
-        if (*generation_should_stop_) {
-            break;
-        }
-        if (token_generated_cb_ && (step + 1) % token_generated_cb_step_ == 0  && step + 1 < (int)max_output_seq_len) {
-            setOutputTensors(output_tensors, input_tensors, max_input_length, max_output_seq_len);
-            sendTensorsToFirstPipelineNode(output_tensors, input_tensors);
-
-            if (pipeline_para_.rank_ == 0 && tensor_para_.rank_ == 0) {
-                token_generated_cb_(output_tensors, token_generated_ctx_);
-            }
-        }
-        if (step == max_input_length) {
-            /* We have just finished processing input: update the padding count:
-             * total_padding_count += (max_input_length - input_lengths)
-             * if has prefix prompts, += (max_prefix_prompt_length - prompt_length)
-             */
-            invokeUpdatePaddingCount(tiled_total_padding_count_,
-                                     input_tensors->at("input_lengths").getPtr<const int>(),  // not_tiled
-                                     has_prefix_prompt_ ? tiled_prompt_lengths_buf_ : (const int*)nullptr,
-                                     max_input_length,
-                                     has_prefix_prompt_ ? max_prefix_prompt_length : 0,
-                                     batch_size,
-                                     beam_width,
-                                     stream_);
-        }
+        // lm_head linear
+        // Expected output tensor size is (bs, seq_len, vocab_size)
+        cublas_wrapper_->Gemm(CUBLAS_OP_T,
+                                CUBLAS_OP_N,
+                                vocab_size_padded_,  // m = output row
+                                batch_size * beam_width * max_input_length, // n = output col
+                                hidden_units_,  // k = common dimension
+                                padded_embedding_kernel_ptr_,
+                                hidden_units_,  // k
+                                normed_context_decoder_output_buf_,
+                                hidden_units_,
+                                lm_head_context_decoder_output_buf_,
+                                vocab_size_padded_
+                                );
+        // Print tenser for debugging
+        // for (int bs = 0; bs < batch_size; bs++) {
+        //     for(int i = max_input_length-2; i<max_input_length; i++) {
+        //         FT_LOG_INFO("\nbs %d, seq %d first 128 elements", bs, i);
+        //         print_to_screen(lm_head_context_decoder_output_buf_ + vocab_size_padded_*(bs*max_input_length + i), 128);
+        //     }
+        // }
     }
+
+    // invokeMaskPaddingTokens(masked_tokens_,
+    //                         input_tensors->at("input_lengths").getPtr<const int>(),  // not_tiled
+    //                         tiled_prompt_lengths_buf_,
+    //                         max_cache_seq_len,
+    //                         max_input_length + max_prefix_prompt_length,
+    //                         0,
+    //                         batch_size,
+    //                         beam_width,
+    //                         stream_);
+
+    // We don't need generation phase for evalution.
+
+    // for (int step = max_input_length; step < (int)max_output_seq_len; step++) {
+    //     const int src_indir_idx = (step - max_input_length) % 2;
+    //     const int tgt_indir_idx = 1 - src_indir_idx;
+
+    //     const size_t local_batch_size = getLocalBatchSize(batch_size, 1, pipeline_para_.world_size_);
+    //     FT_CHECK(batch_size % local_batch_size == 0);
+    //     const size_t iteration_num = batch_size / local_batch_size;
+    //     *generation_should_stop_   = true;
+
+    //     for (uint ite = 0; ite < iteration_num; ++ite) {
+    //         const int id_offset               = ite * local_batch_size * beam_width;
+    //         const int hidden_units_offset     = id_offset * hidden_units_;
+    //         const int vocab_size_units_offset = id_offset * vocab_size_padded_;
+
+    //         if (!(max_input_length > 1 && step == max_input_length)) {
+    //             if (pipeline_para_.rank_ == 0) {
+    //                 invokeEmbeddingLookupPosEncodingPadCount(decoder_input_buf_ + hidden_units_offset,
+    //                                                          gpt_weights->pre_decoder_embedding_table,
+    //                                                          gpt_weights->position_encoding_table,
+    //                                                          output_ids_buf_ + id_offset,
+    //                                                          tiled_total_padding_count_ + id_offset,
+    //                                                          local_batch_size * beam_width,
+    //                                                          hidden_units_,
+    //                                                          (T)(1.0f),
+    //                                                          step - 1,
+    //                                                          batch_size * beam_width,
+    //                                                          0,
+    //                                                          stream_);
+    //                 sync_check_cuda_error();
+    //             }
+    //             std::unordered_map<std::string, Tensor> decoder_input_tensors{
+    //                 {"decoder_input",
+    //                  Tensor{MEMORY_GPU,
+    //                         data_type,
+    //                         {local_batch_size * beam_width, hidden_units_},
+    //                         decoder_input_buf_ + hidden_units_offset}},
+    //                 {"finished",
+    //                  Tensor{MEMORY_GPU, TYPE_BOOL, {local_batch_size * beam_width}, finished_buf_ + id_offset}},
+    //                 {"sequence_lengths",
+    //                  Tensor{MEMORY_GPU, TYPE_INT32, {local_batch_size * beam_width}, sequence_lengths_ + id_offset}},
+    //                 {"total_padding_tokens",
+    //                  Tensor{MEMORY_GPU,
+    //                         TYPE_INT32,
+    //                         {local_batch_size * beam_width},
+    //                         tiled_total_padding_count_ + id_offset}},
+    //                 {"d_prefix_prompt_lengths",
+    //                  Tensor{MEMORY_GPU,
+    //                         TYPE_INT32,
+    //                         {local_batch_size},
+    //                         has_prefix_prompt_ ? (tiled_prompt_lengths_buf_ + id_offset) : nullptr}},
+    //                 {"max_prefix_prompt_length", Tensor{MEMORY_CPU, TYPE_INT32, {1}, &max_prefix_prompt_length}},
+    //                 {"max_input_length", Tensor{MEMORY_CPU, TYPE_INT32, {1}, &max_input_length}},
+    //                 {"step", Tensor{MEMORY_CPU, TYPE_INT32, {1}, &step}},
+    //                 {"ite", Tensor{MEMORY_CPU, TYPE_INT32, {1}, &ite}},
+    //                 {"cache_indirection",
+    //                  Tensor{MEMORY_GPU,
+    //                         TYPE_INT32,
+    //                         {local_batch_size, beam_width, max_output_seq_len},
+    //                         beam_width > 1 ? cache_indirections_[src_indir_idx] + id_offset * max_output_seq_len :
+    //                                          nullptr}},
+    //                 {"masked_tokens",
+    //                  Tensor{MEMORY_GPU,
+    //                         TYPE_BOOL,
+    //                         {local_batch_size * beam_width, max_cache_seq_len},
+    //                         masked_tokens_ + id_offset * max_cache_seq_len}}};
+    //             std::unordered_map<std::string, Tensor> decoder_output_tensors{
+    //                 {"decoder_output",
+    //                  Tensor{MEMORY_GPU,
+    //                         data_type,
+    //                         {local_batch_size * beam_width, hidden_units_},
+    //                         decoder_output_buf_ + hidden_units_offset}},
+    //                 {"key_cache", Tensor{MEMORY_GPU, data_type, self_k_cache_shape, key_cache_}},
+    //                 {"value_cache", Tensor{MEMORY_GPU, data_type, self_v_cache_shape, value_cache_}}};
+    //             gpt_decoder_->forward(
+    //                 &decoder_output_tensors, &decoder_input_tensors, &gpt_weights->decoder_layer_weights);
+    //         }
+
+    //         if (pipeline_para_.rank_ == pipeline_para_.world_size_ - 1) {
+    //             invokeGeneralT5LayerNorm(normed_decoder_output_buf_ + hidden_units_offset,
+    //                                      decoder_output_buf_ + hidden_units_offset,
+    //                                      gpt_weights->post_decoder_layernorm.gamma,
+    //                                      (const T*)nullptr,
+    //                                      layernorm_eps_,
+    //                                      local_batch_size * beam_width,
+    //                                      hidden_units_,
+    //                                      stream_);
+    //             sync_check_cuda_error();
+
+    //             if (tensor_para_.world_size_ == 1) {
+    //                 float alpha = 1.0f;
+    //                 float beta  = 0.0f;
+    //                 cublas_wrapper_->Gemm(CUBLAS_OP_T,
+    //                                       CUBLAS_OP_N,
+    //                                       vocab_size_padded_,  // n
+    //                                       local_batch_size * beam_width,
+    //                                       hidden_units_,  // k
+    //                                       &alpha,
+    //                                       padded_embedding_kernel_ptr_,
+    //                                       gemm_data_type,
+    //                                       hidden_units_,  // k
+    //                                       normed_decoder_output_buf_ + hidden_units_offset,
+    //                                       gemm_data_type,
+    //                                       hidden_units_,  // k
+    //                                       &beta,
+    //                                       logits_buf_ + vocab_size_units_offset,
+    //                                       CUDA_R_32F,
+    //                                       vocab_size_padded_, /* n */
+    //                                       CUDA_R_32F,
+    //                                       cublasGemmAlgo_t(-1));
+    //             }
+    //             else {
+    //                 FT_CHECK(vocab_size_padded_ % tensor_para_.world_size_ == 0);
+    //                 const int local_vocab_size = vocab_size_padded_ / tensor_para_.world_size_;
+    //                 float     alpha            = 1.0f;
+    //                 float     beta             = 0.0f;
+    //                 cublas_wrapper_->Gemm(CUBLAS_OP_T,
+    //                                       CUBLAS_OP_N,
+    //                                       local_vocab_size,  // n
+    //                                       local_batch_size * beam_width,
+    //                                       hidden_units_,  // k
+    //                                       &alpha,
+    //                                       padded_embedding_kernel_ptr_
+    //                                           + tensor_para_.rank_ * local_vocab_size * hidden_units_,
+    //                                       gemm_data_type,
+    //                                       hidden_units_,  // k
+    //                                       normed_decoder_output_buf_ + hidden_units_offset,
+    //                                       gemm_data_type,
+    //                                       hidden_units_,  // k
+    //                                       &beta,
+    //                                       nccl_logits_buf_ + vocab_size_units_offset
+    //                                           + tensor_para_.rank_ * local_batch_size * beam_width * local_vocab_size,
+    //                                       CUDA_R_32F,
+    //                                       local_vocab_size, /* n */
+    //                                       CUDA_R_32F,
+    //                                       cublasGemmAlgo_t(-1));
+    //                 ftNcclAllGather(nccl_logits_buf_ + vocab_size_units_offset,
+    //                                 nccl_logits_buf_ + vocab_size_units_offset,
+    //                                 local_batch_size * beam_width * local_vocab_size,
+    //                                 tensor_para_.rank_,
+    //                                 tensor_para_,
+    //                                 stream_);
+    //                 invokeTransposeAxis01(logits_buf_ + vocab_size_units_offset,
+    //                                       nccl_logits_buf_ + vocab_size_units_offset,
+    //                                       tensor_para_.world_size_,
+    //                                       local_batch_size * beam_width,
+    //                                       local_vocab_size,
+    //                                       stream_);
+    //             }
+
+    //             int                                     tmp_local_batch_size       = local_batch_size;
+    //             bool                                    is_initialize_random_table = step == max_input_length;
+    //             std::unordered_map<std::string, Tensor> dynamic_decode_input_tensors{
+    //                 {"logits",
+    //                  Tensor{MEMORY_GPU, TYPE_FP32, {batch_size, beam_width, vocab_size_padded_}, logits_buf_}},
+    //                 // {"embedding_bias", Tensor{MEMORY_GPU, data_type, {vocab_size_padded_}, nullptr}},
+    //                 {"step", Tensor{MEMORY_CPU, TYPE_INT32, {1}, &step}},
+    //                 {"max_input_length", Tensor{MEMORY_CPU, TYPE_INT32, {1}, &max_input_length}},
+    //                 {"input_lengths",
+    //                  Tensor{MEMORY_GPU, TYPE_INT32, {batch_size, beam_width}, tiled_input_lengths_buf_}},
+    //                 {"sequence_limit_length", Tensor{MEMORY_GPU, TYPE_UINT32, {batch_size}, seq_limit_len_}},
+    //                 {"ite", Tensor{MEMORY_CPU, TYPE_UINT32, {1}, &ite}},
+    //                 {"src_cache_indirection",
+    //                  Tensor{MEMORY_GPU,
+    //                         TYPE_INT32,
+    //                         {local_batch_size, beam_width, max_output_seq_len},
+    //                         cache_indirections_[src_indir_idx] + id_offset * max_output_seq_len}},
+    //                 {"local_batch_size", Tensor{MEMORY_CPU, TYPE_INT32, {1}, &tmp_local_batch_size}},
+    //                 {"end_id", Tensor{MEMORY_GPU, TYPE_INT32, {batch_size}, end_ids_buf_}},
+    //                 {"is_initialize_random_table", Tensor{MEMORY_CPU, TYPE_BOOL, {1}, &is_initialize_random_table}}};
+
+    //             for (auto t = input_tensors->begin(); t != input_tensors->end(); ++t) {
+    //                 if (dynamic_decode_input_tensors.find(t->first) == dynamic_decode_input_tensors.end()) {
+    //                     dynamic_decode_input_tensors.insert(*t);
+    //                 }
+    //             }
+
+    //             // common outputs
+    //             bool                                    subbatch_should_stop = false;
+    //             std::unordered_map<std::string, Tensor> dynamic_decode_output_tensors{
+    //                 {"output_ids",
+    //                  Tensor{MEMORY_GPU, TYPE_INT32, {max_seq_len, batch_size, beam_width}, output_ids_buf_}},
+    //                 {"finished", Tensor{MEMORY_GPU, TYPE_BOOL, {batch_size * beam_width}, finished_buf_}},
+    //                 // cum_log_probs is necessary for beam search, while it is optional for sampling.
+    //                 {"cum_log_probs",
+    //                  Tensor{MEMORY_GPU,
+    //                         TYPE_FP32,
+    //                         {batch_size * beam_width},
+    //                         ((beam_width > 1) || (output_tensors->count("cum_log_probs") > 0)) ? cum_log_probs_ :
+    //                                                                                              nullptr}},
+    //                 {"output_log_probs",
+    //                  Tensor{MEMORY_GPU,
+    //                         TYPE_FP32,
+    //                         {max_seq_len, batch_size, beam_width},
+    //                         output_tensors->count("output_log_probs") > 0
+    //                                 && output_tensors->at("output_log_probs").data != nullptr ?
+    //                             output_log_probs_buf_ :
+    //                             nullptr}},
+    //                 {"parent_ids",
+    //                  Tensor{MEMORY_GPU, TYPE_INT32, {max_seq_len, batch_size, beam_width}, parent_ids_buf_}},
+    //                 {"sequence_length", Tensor{MEMORY_GPU, TYPE_INT32, {batch_size * beam_width}, sequence_lengths_}},
+    //                 {"tgt_cache_indirection",
+    //                  Tensor{MEMORY_GPU,
+    //                         TYPE_INT32,
+    //                         {local_batch_size, beam_width, max_output_seq_len},
+    //                         cache_indirections_[tgt_indir_idx] + id_offset * max_output_seq_len}},
+    //                 {"should_stop", Tensor{MEMORY_CPU, TYPE_BOOL, {1}, &subbatch_should_stop}}};
+
+    //             for (auto t = output_tensors->begin(); t != output_tensors->end(); ++t) {
+    //                 // Handle exceptions.
+    //                 if (t->first == "cum_log_probs" || t->first == "output_log_probs") {
+    //                     continue;
+    //                 }
+    //                 dynamic_decode_output_tensors.insert(*t);
+    //             }
+
+    //             dynamic_decode_layer_->forward(&dynamic_decode_output_tensors, &dynamic_decode_input_tensors);
+    //             *generation_should_stop_ &= subbatch_should_stop;
+    //         }
+    //     }
+
+    //     if (pipeline_para_.world_size_ > 1) {
+    //         ftNcclGroupStart();
+    //         ftNcclBroadCast(output_ids_buf_ + step * batch_size * beam_width,
+    //                         batch_size * beam_width,
+    //                         pipeline_para_.world_size_ - 1,
+    //                         pipeline_para_,
+    //                         stream_);
+
+    //         ftNcclBroadCast(
+    //             sequence_lengths_, batch_size * beam_width, pipeline_para_.world_size_ - 1, pipeline_para_, stream_);
+
+    //         ftNcclBroadCast(generation_should_stop_, 1, pipeline_para_.world_size_ - 1, pipeline_para_, stream_);
+
+    //         if (beam_width > 1) {
+    //             ftNcclBroadCast(cache_indirections_[tgt_indir_idx],
+    //                             batch_size * beam_width * max_output_seq_len,
+    //                             pipeline_para_.world_size_ - 1,
+    //                             pipeline_para_,
+    //                             stream_);
+    //         }
+    //         ftNcclGroupEnd();
+    //         // throw errors when detected
+    //         ftNcclStreamSynchronize(tensor_para_, pipeline_para_, stream_);
+    //         sync_check_cuda_error();
+    //     }
+
+    //     if (*generation_should_stop_) {
+    //         break;
+    //     }
+    //     if (token_generated_cb_ && (step + 1) % token_generated_cb_step_ == 0  && step + 1 < (int)max_output_seq_len) {
+    //         setOutputTensors(output_tensors, input_tensors, max_input_length, max_output_seq_len);
+    //         sendTensorsToFirstPipelineNode(output_tensors, input_tensors);
+
+    //         if (pipeline_para_.rank_ == 0 && tensor_para_.rank_ == 0) {
+    //             token_generated_cb_(output_tensors, token_generated_ctx_);
+    //         }
+    //     }
+    //     if (step == max_input_length) {
+    //         /* We have just finished processing input: update the padding count:
+    //          * total_padding_count += (max_input_length - input_lengths)
+    //          * if has prefix prompts, += (max_prefix_prompt_length - prompt_length)
+    //          */
+    //         invokeUpdatePaddingCount(tiled_total_padding_count_,
+    //                                  input_tensors->at("input_lengths").getPtr<const int>(),  // not_tiled
+    //                                  has_prefix_prompt_ ? tiled_prompt_lengths_buf_ : (const int*)nullptr,
+    //                                  max_input_length,
+    //                                  has_prefix_prompt_ ? max_prefix_prompt_length : 0,
+    //                                  batch_size,
+    //                                  beam_width,
+    //                                  stream_);
+    //     }
+    // }
 
     setOutputTensors(output_tensors, input_tensors, max_input_length, max_output_seq_len);
-    sendTensorsToFirstPipelineNode(output_tensors, input_tensors);
+    
+    // This is required for for the generation phase
+    // sendTensorsToFirstPipelineNode(output_tensors, input_tensors);
 }
 
 template<typename T>
@@ -1180,20 +1233,29 @@ void Llama<T>::setOutputTensors(std::unordered_map<std::string, Tensor>*       o
             sequence_lengths, sequence_lengths_, output_tensors->at("sequence_length").size(), stream_);
         sync_check_cuda_error();
     }
-    if ((output_tensors->count("output_log_probs") > 0 && output_tensors->at("output_log_probs").data != nullptr)) {
-        invokeTransposeAxis01(output_tensors->at("output_log_probs").getPtr<float>(),
-                              output_log_probs_buf_,
-                              input_tensors->at("output_seq_len").max<uint32_t>() - max_input_length,
-                              batch_size * beam_width,
-                              1,
-                              stream_);
-    }
+    // if ((output_tensors->count("output_log_probs") > 0 && output_tensors->at("output_log_probs").data != nullptr)) {
+    //     invokeTransposeAxis01(output_tensors->at("output_log_probs").getPtr<float>(),
+    //                           output_log_probs_buf_,
+    //                           input_tensors->at("output_seq_len").max<uint32_t>() - max_input_length,
+    //                           batch_size * beam_width,
+    //                           1,
+    //                           stream_);
+    // }
     // Return the cumulative log probability if requested.
     if (output_tensors->count("cum_log_probs") > 0) {
         Tensor cum_log_probs = output_tensors->at("cum_log_probs");
         FT_CHECK_WITH_INFO(cum_log_probs.size() == batch_size * beam_width,
                            "The shape of cum_log_probs does not match with batch_size x beam_width.");
         cudaAutoCpy(cum_log_probs.getPtr<float>(), cum_log_probs_, cum_log_probs.size(), stream_);
+    }
+
+    // Return the logits_buf if requested.
+    if (output_tensors->count("logits_buf") > 0) {
+        Tensor test = output_tensors->at("logits_buf");
+        //batch_size * beam_width, max_input_length, vocab_size
+        FT_CHECK_WITH_INFO(test.size() == batch_size * beam_width * max_input_length * vocab_size_,
+                           "The shape of logits_buf does not match with batch_size * beam_width * max_input_length * vocab_size_");
+        cudaAutoCpy(test.getPtr<half>(), (half*)lm_head_context_decoder_output_buf_, test.size(), stream_);
     }
 }
 

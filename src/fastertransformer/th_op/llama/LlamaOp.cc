@@ -94,7 +94,8 @@ std::vector<th::Tensor> LlamaOp::forward(th::Tensor               input_ids,
                                            th::optional<th::Tensor> len_penalty_opt,
                                            th::optional<th::Tensor> repetition_penalty_opt,
                                            th::optional<th::Tensor> random_seed_opt,
-                                           th::optional<int64_t>    return_cum_log_probs_opt)
+                                           th::optional<int64_t>    return_cum_log_probs_opt,
+                                           th::optional<int64_t>    return_output_log_probs_opt)
 {
     CHECK_TH_CUDA(input_ids);
     CHECK_CONTIGUOUS(input_ids);
@@ -121,12 +122,14 @@ std::vector<th::Tensor> LlamaOp::forward(th::Tensor               input_ids,
         torch::empty({batch_size, beam_width}, torch::dtype(torch::kInt32).device(torch::kCUDA).requires_grad(false));
     th::Tensor cum_log_probs =
         torch::empty({batch_size, beam_width}, torch::dtype(torch::kFloat32).device(torch::kCUDA).requires_grad(false));
-
+    th::Tensor output_log_probs = // FIXME: vocab size is hard-coded.
+        torch::empty({batch_size * beam_width, max_input_length, 32000}, torch::dtype(torch::kFloat16).device(torch::kCUDA).requires_grad(false));
     ftllama->forward(input_ids,
                    input_lengths,
                    output_ids,
                    sequence_lengths,
                    cum_log_probs,
+                   output_log_probs,
                    (const size_t)output_len,
                    (const size_t)beam_width,
                    top_k_opt,
@@ -136,11 +139,12 @@ std::vector<th::Tensor> LlamaOp::forward(th::Tensor               input_ids,
                    len_penalty_opt,
                    repetition_penalty_opt,
                    random_seed_opt,
-                   return_cum_log_probs_opt);
+                   return_cum_log_probs_opt,
+                   return_output_log_probs_opt);
     if (return_cum_log_probs > 0) {
-        return std::vector<th::Tensor>{output_ids, sequence_lengths, cum_log_probs};
+        return std::vector<th::Tensor>{output_ids, sequence_lengths, cum_log_probs, output_log_probs};
     }
-    return std::vector<th::Tensor>{output_ids, sequence_lengths};
+    return std::vector<th::Tensor>{output_ids, sequence_lengths, output_log_probs};
 }
 
 }  // namespace torch_ext
