@@ -62,14 +62,14 @@ void Llama<T>::initialize()
                                        custom_all_reduce_comm_,
                                        enable_custom_all_reduce_);
 
-    dynamic_decode_layer_ = new DynamicDecodeLayer<float>(vocab_size_,
-                                                          vocab_size_padded_,
-                                                          0,  // end_id, deprecated
-                                                          stream_,
-                                                          cublas_wrapper_,
-                                                          allocator_,
-                                                          is_free_buffer_after_forward_,
-                                                          cuda_device_prop_);
+    // dynamic_decode_layer_ = new DynamicDecodeLayer<float>(vocab_size_,
+    //                                                       vocab_size_padded_,
+    //                                                       0,  // end_id, deprecated
+    //                                                       stream_,
+    //                                                       cublas_wrapper_,
+    //                                                       allocator_,
+    //                                                       is_free_buffer_after_forward_,
+    //                                                       cuda_device_prop_);
 
     // parse env overrides
     if (std::getenv("LLAMA_STREAM_CB_STEP") != nullptr) {
@@ -123,7 +123,7 @@ void Llama<T>::allocateBuffer(
     //     (float*)(allocator_->reMalloc(nccl_logits_buf_, sizeof(float) * batchxbeam * vocab_size_padded_, false));
     cum_log_probs_    = (float*)(allocator_->reMalloc(cum_log_probs_, sizeof(float) * batchxbeam, false));
     finished_buf_     = (bool*)(allocator_->reMalloc(finished_buf_, sizeof(bool) * batchxbeam, false));
-    h_finished_buf_   = new bool[batchxbeam];
+    // h_finished_buf_   = new bool[batchxbeam];
     sequence_lengths_ = (int*)(allocator_->reMalloc(sequence_lengths_, sizeof(int) * batchxbeam, false));
 
     key_cache_   = (T*)(allocator_->reMalloc(key_cache_, sizeof(T) * self_cache_size * 2, true));
@@ -190,7 +190,7 @@ void Llama<T>::freeBuffer()
         // allocator_->free((void**)(&nccl_logits_buf_));
         allocator_->free((void**)(&cum_log_probs_));
         allocator_->free((void**)(&finished_buf_));
-        delete[] h_finished_buf_;
+        // delete[] h_finished_buf_;
         allocator_->free((void**)(&sequence_lengths_));
 
         allocator_->free((void**)(&key_cache_));
@@ -378,7 +378,7 @@ template<typename T>
 Llama<T>::~Llama()
 {
     delete gpt_decoder_;
-    delete dynamic_decode_layer_;
+    // delete dynamic_decode_layer_;
     delete gpt_context_decoder_;
     freeBuffer();
 }
@@ -563,7 +563,7 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
     sync_check_cuda_error();
     {
         TensorMap input_map(*input_tensors);
-        dynamic_decode_layer_->setup(batch_size, beam_width, &input_map);
+        // dynamic_decode_layer_->setup(batch_size, beam_width, &input_map);
         handleOptArg(&input_map, "start_id", start_ids_buf_, start_id_, batch_size);
         handleOptArg(&input_map, "end_id", end_ids_buf_, end_id_, batch_size);
     }
@@ -717,56 +717,56 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                                  stream_);
         sync_check_cuda_error();
     }
-    else if (max_input_length == 0) {
-        FT_CHECK(prompt_learning_type_ == PromptLearningType::no_prompt
-                 && request_prompt_type == PromptLearningType::no_prompt);  // Not support prompts in this case
-        max_input_length++;
-        invokeDecodingInitialize(finished_buf_,
-                                 sequence_lengths_,
-                                 output_ids_buf_,
-                                 cum_log_probs_,
-                                 start_ids_buf_,
-                                 batch_size,
-                                 beam_width,
-                                 max_input_length - 1,
-                                 stream_);
-        std::vector<int> h_input_lengths(batch_size * beam_width, 1);
-        cudaMemcpyAsync(tiled_input_lengths_buf_,
-                        h_input_lengths.data(),
-                        sizeof(int) * batch_size * beam_width,
-                        cudaMemcpyHostToDevice,
-                        stream_);
-        sync_check_cuda_error();
-    }
-    else if (max_input_length == 1) {
-        FT_CHECK(prompt_learning_type_ == PromptLearningType::no_prompt
-                 && request_prompt_type == PromptLearningType::no_prompt);  // Not support prompts in this case
-        invokeDecodingInitialize(finished_buf_,
-                                 sequence_lengths_,
-                                 nullptr,
-                                 cum_log_probs_,
-                                 start_ids_buf_,
-                                 batch_size,
-                                 beam_width,
-                                 max_input_length - 1,
-                                 stream_);
-        sync_check_cuda_error();
-        invokeTileGptInputs(tiled_input_ids_buf_,
-                            tiled_input_lengths_buf_,
-                            input_tensors->at("input_ids").getPtr<int>(),
-                            input_tensors->at("input_lengths").getPtr<const int>(),
-                            batch_size,
-                            beam_width,
-                            max_input_length,
-                            stream_);
-        sync_check_cuda_error();
+    // else if (max_input_length == 0) {
+    //     FT_CHECK(prompt_learning_type_ == PromptLearningType::no_prompt
+    //              && request_prompt_type == PromptLearningType::no_prompt);  // Not support prompts in this case
+    //     max_input_length++;
+    //     invokeDecodingInitialize(finished_buf_,
+    //                              sequence_lengths_,
+    //                              output_ids_buf_,
+    //                              cum_log_probs_,
+    //                              start_ids_buf_,
+    //                              batch_size,
+    //                              beam_width,
+    //                              max_input_length - 1,
+    //                              stream_);
+    //     std::vector<int> h_input_lengths(batch_size * beam_width, 1);
+    //     cudaMemcpyAsync(tiled_input_lengths_buf_,
+    //                     h_input_lengths.data(),
+    //                     sizeof(int) * batch_size * beam_width,
+    //                     cudaMemcpyHostToDevice,
+    //                     stream_);
+    //     sync_check_cuda_error();
+    // }
+    // else if (max_input_length == 1) {
+    //     FT_CHECK(prompt_learning_type_ == PromptLearningType::no_prompt
+    //              && request_prompt_type == PromptLearningType::no_prompt);  // Not support prompts in this case
+    //     invokeDecodingInitialize(finished_buf_,
+    //                              sequence_lengths_,
+    //                              nullptr,
+    //                              cum_log_probs_,
+    //                              start_ids_buf_,
+    //                              batch_size,
+    //                              beam_width,
+    //                              max_input_length - 1,
+    //                              stream_);
+    //     sync_check_cuda_error();
+    //     invokeTileGptInputs(tiled_input_ids_buf_,
+    //                         tiled_input_lengths_buf_,
+    //                         input_tensors->at("input_ids").getPtr<int>(),
+    //                         input_tensors->at("input_lengths").getPtr<const int>(),
+    //                         batch_size,
+    //                         beam_width,
+    //                         max_input_length,
+    //                         stream_);
+    //     sync_check_cuda_error();
 
-        cudaMemcpyAsync(output_ids_buf_,
-                        tiled_input_ids_buf_,
-                        sizeof(int) * batch_size * beam_width,
-                        cudaMemcpyDeviceToDevice,
-                        stream_);
-    }
+    //     cudaMemcpyAsync(output_ids_buf_,
+    //                     tiled_input_ids_buf_,
+    //                     sizeof(int) * batch_size * beam_width,
+    //                     cudaMemcpyDeviceToDevice,
+    //                     stream_);
+    // }
 
     if (vocab_size_ == vocab_size_padded_) {
         padded_embedding_kernel_ptr_ = gpt_weights->post_decoder_embedding.kernel;

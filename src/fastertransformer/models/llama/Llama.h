@@ -72,7 +72,7 @@ private:
 
     LlamaDecoder<T>*         gpt_decoder_;
     LlamaContextDecoder<T>*  gpt_context_decoder_;
-    DynamicDecodeLayer<float>* dynamic_decode_layer_;
+    // DynamicDecodeLayer<float>* dynamic_decode_layer_;
 
     void allocateBuffer() override;
     void allocateBuffer(
@@ -97,7 +97,7 @@ protected:
     float* cum_log_probs_;
 
     bool*     finished_buf_;
-    bool*     h_finished_buf_;
+    // bool*     h_finished_buf_;
     int*      sequence_lengths_          = nullptr;
     // int*      tiled_total_padding_count_ = nullptr;
     uint32_t* seq_limit_len_             = nullptr;
