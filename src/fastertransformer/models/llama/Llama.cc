@@ -146,10 +146,10 @@ void Llama<T>::allocateBuffer(
     // tiled_total_padding_count_ =
     //     (int*)allocator_->reMalloc(tiled_total_padding_count_, batchxbeam * sizeof(int), false);
 
-    transposed_output_ids_buf_ =
-        (int*)(allocator_->reMalloc(transposed_output_ids_buf_, sizeof(int) * batchxbeam * max_seq_len, true));
+    // transposed_output_ids_buf_ =
+    //     (int*)(allocator_->reMalloc(transposed_output_ids_buf_, sizeof(int) * batchxbeam * max_seq_len, true));
     output_ids_buf_ = (int*)(allocator_->reMalloc(output_ids_buf_, sizeof(int) * batchxbeam * max_seq_len, true));
-    parent_ids_buf_ = (int*)(allocator_->reMalloc(parent_ids_buf_, sizeof(int) * batchxbeam * max_seq_len, true));
+    // parent_ids_buf_ = (int*)(allocator_->reMalloc(parent_ids_buf_, sizeof(int) * batchxbeam * max_seq_len, true));
     seq_limit_len_  = (uint32_t*)(allocator_->reMalloc(seq_limit_len_, sizeof(uint32_t) * batch_size, false));
     // masked_tokens_ = (bool*)(allocator_->reMalloc(masked_tokens_, sizeof(bool) * batchxbeam * max_cache_seq_len, true));
 
@@ -205,9 +205,9 @@ void Llama<T>::freeBuffer()
         allocator_->free((void**)(&tiled_input_lengths_buf_));
         // allocator_->free((void**)(&tiled_total_padding_count_));
 
-        allocator_->free((void**)(&transposed_output_ids_buf_));
+        // allocator_->free((void**)(&transposed_output_ids_buf_));
         allocator_->free((void**)(&output_ids_buf_));
-        allocator_->free((void**)(&parent_ids_buf_));
+        // allocator_->free((void**)(&parent_ids_buf_));
         allocator_->free((void**)(&seq_limit_len_));
         // allocator_->free((void**)(&masked_tokens_));
 
@@ -584,7 +584,7 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
 
     // initialize the output ids and parent ids
     cudaMemsetAsync(output_ids_buf_, 0, sizeof(int) * batch_size * beam_width * max_seq_len, stream_);
-    cudaMemsetAsync(parent_ids_buf_, 0, sizeof(int) * batch_size * beam_width * max_seq_len, stream_);
+    // cudaMemsetAsync(parent_ids_buf_, 0, sizeof(int) * batch_size * beam_width * max_seq_len, stream_);
     // cudaMemsetAsync(masked_tokens_, false, sizeof(bool) * batch_size * beam_width * max_cache_seq_len, stream_);
     // cudaMemsetAsync(tiled_total_padding_count_, 0, sizeof(int) * batch_size * beam_width, stream_);
     if (beam_width > 1) {
@@ -1171,68 +1171,68 @@ void Llama<T>::setOutputTensors(std::unordered_map<std::string, Tensor>*       o
     const size_t max_prefix_soft_prompt_length =
         has_prefix_soft_prompt_ ? input_tensors->at("request_prompt_embedding").shape[1] : 0;
 
-    if (input_tensors->at("input_ids").shape[1] == 0) {
-        invokeCudaD2DcpyConvert(
-            sequence_lengths, sequence_lengths_, output_tensors->at("sequence_length").size(), stream_);
-        // TODO: D2D sequence_lenghts
-        if (beam_width > 1) {
-            // For beam search, do gather_tree
-            // take output_parent_ids as inter buffer
-            invokeGatherTree(transposed_output_ids_buf_,
-                             sequence_lengths_,
-                             max_output_seq_len,
-                             batch_size,
-                             beam_width,
-                             output_ids_buf_ + batch_size * beam_width,
-                             parent_ids_buf_ + batch_size * beam_width,
-                             end_ids_buf_,
-                             stream_);
+    // if (input_tensors->at("input_ids").shape[1] == 0) {
+    //     invokeCudaD2DcpyConvert(
+    //         sequence_lengths, sequence_lengths_, output_tensors->at("sequence_length").size(), stream_);
+    //     // TODO: D2D sequence_lenghts
+    //     if (beam_width > 1) {
+    //         // For beam search, do gather_tree
+    //         // take output_parent_ids as inter buffer
+    //         invokeGatherTree(transposed_output_ids_buf_,
+    //                          sequence_lengths_,
+    //                          max_output_seq_len,
+    //                          batch_size,
+    //                          beam_width,
+    //                          output_ids_buf_ + batch_size * beam_width,
+    //                          parent_ids_buf_ + batch_size * beam_width,
+    //                          end_ids_buf_,
+    //                          stream_);
 
-            // transpose and take output_parent_ids as inter buffer
-            invokeTransposeAxis01(output_tensors->at("output_ids").getPtr<int>(),
-                                  transposed_output_ids_buf_,
-                                  max_output_seq_len - 1,
-                                  batch_size * beam_width,
-                                  1,
-                                  stream_);
-        }
-        else {
-            // For sampling, only copy the results to output_tensor
-            invokeTransposeAxis01(output_tensors->at("output_ids").getPtr<int>(),
-                                  output_ids_buf_ + batch_size * beam_width,
-                                  max_output_seq_len - 1,
-                                  batch_size * beam_width,
-                                  1,
-                                  stream_);
-        }
-    }
-    else {
+    //         // transpose and take output_parent_ids as inter buffer
+    //         invokeTransposeAxis01(output_tensors->at("output_ids").getPtr<int>(),
+    //                               transposed_output_ids_buf_,
+    //                               max_output_seq_len - 1,
+    //                               batch_size * beam_width,
+    //                               1,
+    //                               stream_);
+    //     }
+    //     else {
+    //         // For sampling, only copy the results to output_tensor
+    //         invokeTransposeAxis01(output_tensors->at("output_ids").getPtr<int>(),
+    //                               output_ids_buf_ + batch_size * beam_width,
+    //                               max_output_seq_len - 1,
+    //                               batch_size * beam_width,
+    //                               1,
+    //                               stream_);
+    //     }
+    // }
+    // else {
 
-        // For sampling, it is equivalent to all parent ids are 0.
-        gatherTreeParam param;
-        param.beams                = transposed_output_ids_buf_;
-        param.max_sequence_lengths = sequence_lengths_;
-        // add sequence_length 1 here because the sequence_length of time step t is t - 1
-        param.max_sequence_length_final_step = 1;
-        param.max_time                       = max_output_seq_len;
-        param.batch_size                     = batch_size;
-        param.beam_width                     = beam_width;
-        param.step_ids                       = output_ids_buf_;
-        param.parent_ids                     = beam_width == 1 ? nullptr : parent_ids_buf_;
-        param.end_tokens                     = end_ids_buf_;
-        param.max_input_length               = max_input_length;
-        param.prefix_soft_prompt_lengths =
-            has_prefix_soft_prompt_ ? input_tensors->at("request_prompt_lengths").getPtr<int>() : nullptr;
-        param.input_lengths                   = tiled_input_lengths_buf_;
-        param.max_prefix_soft_prompt_length   = max_prefix_soft_prompt_length;
-        param.max_input_without_prompt_length = max_input_length;
-        param.stream                          = stream_;
-        param.output_ids                      = output_tensors->at("output_ids").getPtr<int>();
-        invokeGatherTree(param);
-        invokeCudaD2DcpyConvert(
-            sequence_lengths, sequence_lengths_, output_tensors->at("sequence_length").size(), stream_);
-        sync_check_cuda_error();
-    }
+    //     // For sampling, it is equivalent to all parent ids are 0.
+    //     gatherTreeParam param;
+    //     param.beams                = transposed_output_ids_buf_;
+    //     param.max_sequence_lengths = sequence_lengths_;
+    //     // add sequence_length 1 here because the sequence_length of time step t is t - 1
+    //     param.max_sequence_length_final_step = 1;
+    //     param.max_time                       = max_output_seq_len;
+    //     param.batch_size                     = batch_size;
+    //     param.beam_width                     = beam_width;
+    //     param.step_ids                       = output_ids_buf_;
+    //     param.parent_ids                     = beam_width == 1 ? nullptr : parent_ids_buf_;
+    //     param.end_tokens                     = end_ids_buf_;
+    //     param.max_input_length               = max_input_length;
+    //     param.prefix_soft_prompt_lengths =
+    //         has_prefix_soft_prompt_ ? input_tensors->at("request_prompt_lengths").getPtr<int>() : nullptr;
+    //     param.input_lengths                   = tiled_input_lengths_buf_;
+    //     param.max_prefix_soft_prompt_length   = max_prefix_soft_prompt_length;
+    //     param.max_input_without_prompt_length = max_input_length;
+    //     param.stream                          = stream_;
+    //     param.output_ids                      = output_tensors->at("output_ids").getPtr<int>();
+    //     invokeGatherTree(param);
+    //     invokeCudaD2DcpyConvert(
+    //         sequence_lengths, sequence_lengths_, output_tensors->at("sequence_length").size(), stream_);
+    //     sync_check_cuda_error();
+    // }
     // if ((output_tensors->count("output_log_probs") > 0 && output_tensors->at("output_log_probs").data != nullptr)) {
     //     invokeTransposeAxis01(output_tensors->at("output_log_probs").getPtr<float>(),
     //                           output_log_probs_buf_,
@@ -1242,12 +1242,12 @@ void Llama<T>::setOutputTensors(std::unordered_map<std::string, Tensor>*       o
     //                           stream_);
     // }
     // Return the cumulative log probability if requested.
-    if (output_tensors->count("cum_log_probs") > 0) {
-        Tensor cum_log_probs = output_tensors->at("cum_log_probs");
-        FT_CHECK_WITH_INFO(cum_log_probs.size() == batch_size * beam_width,
-                           "The shape of cum_log_probs does not match with batch_size x beam_width.");
-        cudaAutoCpy(cum_log_probs.getPtr<float>(), cum_log_probs_, cum_log_probs.size(), stream_);
-    }
+    // if (output_tensors->count("cum_log_probs") > 0) {
+    //     Tensor cum_log_probs = output_tensors->at("cum_log_probs");
+    //     FT_CHECK_WITH_INFO(cum_log_probs.size() == batch_size * beam_width,
+    //                        "The shape of cum_log_probs does not match with batch_size x beam_width.");
+    //     cudaAutoCpy(cum_log_probs.getPtr<float>(), cum_log_probs_, cum_log_probs.size(), stream_);
+    // }
 
     // Return the logits_buf if requested.
     if (output_tensors->count("logits_buf") > 0) {

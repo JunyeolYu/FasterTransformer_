@@ -112,9 +112,9 @@ protected:
 
     int*  tiled_input_ids_buf_;
     int*  tiled_input_lengths_buf_;
-    int*  transposed_output_ids_buf_;
+    // int*  transposed_output_ids_buf_;
     int*  output_ids_buf_;
-    int*  parent_ids_buf_;
+    // int*  parent_ids_buf_;
     int*  start_ids_buf_;
     int*  end_ids_buf_;
     // bool* masked_tokens_ = nullptr;
