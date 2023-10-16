@@ -254,7 +254,7 @@ class Llama(nn.Module):
         return is_load
 
     def half(self):
-        self.weights._map(lambda w: w.half())
+        #self.weights._map(lambda w: w.half())
         self.cuda()
 
     def cuda(self):
