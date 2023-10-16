@@ -113,8 +113,8 @@ class LlamaWeights(object):
     def _map(self, func):
         for i in range(len(self.w)):
             if isinstance(self.w[i], list):
-                for j in range(len(self.w[i])):
-                    self.w[i][j] = func(self.w[i][j])
+                #for j in range(len(self.w[i])):
+                #    self.w[i][j] = func(self.w[i][j])
             else:
                 self.w[i] = func(self.w[i])
 
