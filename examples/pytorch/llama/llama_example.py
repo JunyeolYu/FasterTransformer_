@@ -129,7 +129,7 @@ class RequestInstance:
             [self.request_id,
             len(self.context), 
             self.context, 0.0, ending_tok, self.label, i, len(ending_tok),
-            self.embedding_model(torch.unsqueeze(torch.tensor(self.context + ending_tok[:-1]),0), 0)]
+            self.embedding_model(torch.unsqueeze(torch.tensor(self.context + ending_tok[:-1]),0), 0)[0]]
             for i,ending_tok in enumerate(self.endings)            
         ]
 
@@ -348,14 +348,18 @@ def main():
         prompt_tokens = [prompt[2]+prompt[4][:-1] for prompt in prompts]
         #the embeds are (h, start_pos, freqs_cis, mask)
         prompt_embeds = [prompt[8] for prompt in prompts]
-        #print(prompt_embeds[0][0].shape)
+        
         prompt_size = [prompt[1]+prompt[-2]-1 for prompt in prompts]
         start_lengths = torch.IntTensor(prompt_size)#[prompt[1] for prompt in prompts]
         
         tokens = torch.full((len(prompts), max(prompt_size)), 0, dtype = torch.int32, device='cuda')
         for k, t in enumerate(prompt_tokens):
             tokens[k, : prompt_size[k]] = torch.tensor(t)
-
+        
+        embeded = torch.full((len(prompts), max(prompt_size), 6656), 0, dtype = torch.float16, device='cuda')
+        for k, t in enumerate(prompt_embeds):
+            embeded[k, :prompt_size[k], :] = t.detach().clone()
+        
         with torch.no_grad():
             # PGJ: return_output_length를 True로, return_cum_log_probs를 0이 아니게 주면
             # forward 시 (output_ids, output_lengths, output_cum_log_probs)로 반환
@@ -373,7 +377,8 @@ def main():
                 repetition_penalty=repetition_penalty * torch.ones(size=[batch_size], dtype=torch.float32),
                 random_seed=torch.zeros([batch_size], dtype=torch.int64),
                 return_output_length=True,
-                return_cum_log_probs=0)
+                return_cum_log_probs=0,
+                embed_output = embeded)
             torch.cuda.empty_cache()
             if(rank == 3):
                 multi_logits = torch.nn.functional.log_softmax(output_log_probs, dim=-1)

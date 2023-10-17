@@ -36,6 +36,7 @@ public:
                          th::Tensor&              sequence_lengths,
                          th::Tensor&              cum_log_probs,
                          th::Tensor&              output_log_probs,
+                         th::Tensor&              embed_output,
                          const size_t             request_output_len,
                          const size_t             beam_width,
                          th::optional<th::Tensor> top_k_opt,
@@ -143,6 +144,7 @@ public:
                  th::Tensor&              sequence_lengths,
                  th::Tensor&              cum_log_probs,
                  th::Tensor&              output_log_probs,
+                 th::Tensor&              embed_output,
                  const size_t             request_output_len,
                  const size_t             beam_width,
                  th::optional<th::Tensor> top_k_opt,
@@ -227,7 +229,13 @@ public:
                  ft::MEMORY_GPU, ft::TYPE_INT32, std::vector<size_t>{request_batch_size}, get_ptr<int>(input_lengths)}},
             {"output_seq_len",
              ft::Tensor{
-                 ft::MEMORY_CPU, ft::TYPE_UINT32, std::vector<size_t>{request_batch_size}, output_seq_len.data()}}};
+                 ft::MEMORY_CPU, ft::TYPE_UINT32, std::vector<size_t>{request_batch_size}, output_seq_len.data()}},
+            {"embed_output",
+             ft::Tensor{ft::MEMORY_GPU,
+                        ft::TYPE_FP16,
+                        std::vector<size_t>{request_batch_size, max_input_length, 6656},
+                        get_ptr<half>(embed_output)}}
+        };
         if (beam_width > 1 && beam_search_diversity_rate_opt.has_value()) {
             input_tensors.insert(
                 {"beam_search_diversity_rate",
@@ -349,6 +357,7 @@ public:
 
     vector<th::Tensor> forward(th::Tensor               input_ids,
                                th::Tensor               input_lengths,
+                               th::Tensor               embed_output,
                                const int64_t            output_len,
                                th::optional<int64_t>    beam_width_opt,
                                th::optional<th::Tensor> top_k_opt,

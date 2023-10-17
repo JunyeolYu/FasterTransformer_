@@ -273,6 +273,7 @@ class Llama(nn.Module):
     def forward(self,
                 start_ids: torch.Tensor,
                 start_lengths: torch.Tensor,
+                embed_output: torch.Tensor,
                 output_len,
                 beam_width = 1,
                 top_k: torch.Tensor = None,
@@ -300,6 +301,7 @@ class Llama(nn.Module):
         
         outputs = self.model.forward(input_ids,
                                      input_lengths,
+                                     embed_output,
                                      outlen, #output_len
                                      beam_width, # optional, can be None
                                      top_k, # optional, can be None

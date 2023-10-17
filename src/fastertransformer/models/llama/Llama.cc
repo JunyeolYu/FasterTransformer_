@@ -619,43 +619,43 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                             stream_);
         sync_check_cuda_error();
 
-        if (has_prefix_soft_prompt_) {
-            inputIdsEmbeddingLookupPosEncodingSoftPromptParam<T> param;
-            param.from_tensor                   = context_decoder_input_buf_;
-            param.output_ids                    = output_ids_buf_;
-            param.input_lengths                 = tiled_input_lengths_buf_;
-            param.embedding_table               = gpt_weights->pre_decoder_embedding_table;
-            param.pos_table                     = gpt_weights->position_encoding_table;
-            param.prefix_soft_prompt_embedding  = input_tensors->at("request_prompt_embedding").getPtr<float>();
-            param.prefix_soft_prompt_lengths    = input_tensors->at("request_prompt_lengths").getPtr<int>();
-            param.input_ids                     = tiled_input_ids_buf_;
-            param.start_step                    = 1;
-            param.max_input_length              = max_input_length;
-            param.max_prefix_soft_prompt_length = max_prefix_soft_prompt_length;
-            param.batch_size                    = batch_size;
-            param.beam_width                    = beam_width;
-            param.hidden_units                  = hidden_units_;
-            param.stream                        = stream_;
+        // if (has_prefix_soft_prompt_) {
+        //     inputIdsEmbeddingLookupPosEncodingSoftPromptParam<T> param;
+        //     param.from_tensor                   = context_decoder_input_buf_;
+        //     param.output_ids                    = output_ids_buf_;
+        //     param.input_lengths                 = tiled_input_lengths_buf_;
+        //     param.embedding_table               = gpt_weights->pre_decoder_embedding_table;
+        //     param.pos_table                     = gpt_weights->position_encoding_table;
+        //     param.prefix_soft_prompt_embedding  = input_tensors->at("request_prompt_embedding").getPtr<float>();
+        //     param.prefix_soft_prompt_lengths    = input_tensors->at("request_prompt_lengths").getPtr<int>();
+        //     param.input_ids                     = tiled_input_ids_buf_;
+        //     param.start_step                    = 1;
+        //     param.max_input_length              = max_input_length;
+        //     param.max_prefix_soft_prompt_length = max_prefix_soft_prompt_length;
+        //     param.batch_size                    = batch_size;
+        //     param.beam_width                    = beam_width;
+        //     param.hidden_units                  = hidden_units_;
+        //     param.stream                        = stream_;
 
-            invokeInputIdsEmbeddingLookupPosEncodingSoftPrompt(param);
-            sync_check_cuda_error();
-            max_input_length += max_prefix_soft_prompt_length;  // view soft_prompt as input
-        }
-        else {
-            invokeInputIdsEmbeddingLookupPosEncoding(context_decoder_input_buf_,
-                                                     output_ids_buf_,
-                                                     gpt_weights->pre_decoder_embedding_table,
-                                                     gpt_weights->position_encoding_table,
-                                                     pPromptTuningParam<T>{},  // no p/prompt tuning
-                                                     tiled_input_ids_buf_,
-                                                     1,
-                                                     max_input_length,
-                                                     max_input_length,
-                                                     batch_size * beam_width,
-                                                     hidden_units_,
-                                                     stream_);
-            sync_check_cuda_error();
-        }
+        //     invokeInputIdsEmbeddingLookupPosEncodingSoftPrompt(param);
+        //     sync_check_cuda_error();
+        //     max_input_length += max_prefix_soft_prompt_length;  // view soft_prompt as input
+        // }
+        // else {
+        //     // invokeInputIdsEmbeddingLookupPosEncoding(context_decoder_input_buf_,
+        //     //                                          output_ids_buf_,
+        //     //                                          gpt_weights->pre_decoder_embedding_table,
+        //     //                                          gpt_weights->position_encoding_table,
+        //     //                                          pPromptTuningParam<T>{},  // no p/prompt tuning
+        //     //                                          tiled_input_ids_buf_,
+        //     //                                          1,
+        //     //                                          max_input_length,
+        //     //                                          max_input_length,
+        //     //                                          batch_size * beam_width,
+        //     //                                          hidden_units_,
+        //     //                                          stream_);
+        //     sync_check_cuda_error();
+        // }
 
         invokeBuildDecoderAttentionMask(input_attention_mask_,
                                         tiled_input_lengths_buf_,
@@ -671,7 +671,7 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
              Tensor{MEMORY_GPU,
                     data_type,
                     {batch_size * beam_width, (size_t)max_input_length, hidden_units_},
-                    context_decoder_input_buf_}},
+                    input_tensors->at("embed_output").getPtr<half>()}},
             {"attention_mask",
              Tensor{MEMORY_GPU,
                     data_type,

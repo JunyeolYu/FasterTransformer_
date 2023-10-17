@@ -85,6 +85,7 @@ LlamaOp::~LlamaOp()
 
 std::vector<th::Tensor> LlamaOp::forward(th::Tensor               input_ids,
                                            th::Tensor               input_lengths,
+                                           th::Tensor               embed_output,
                                            const int64_t            output_len,
                                            th::optional<int64_t>    beam_width_opt,
                                            th::optional<th::Tensor> top_k_opt,
@@ -98,7 +99,9 @@ std::vector<th::Tensor> LlamaOp::forward(th::Tensor               input_ids,
                                            th::optional<int64_t>    return_output_log_probs_opt)
 {
     CHECK_TH_CUDA(input_ids);
+    CHECK_TH_CUDA(embed_output);
     CHECK_CONTIGUOUS(input_ids);
+    CHECK_CONTIGUOUS(embed_output);
     TORCH_CHECK(input_ids.dtype() == torch::kInt32, "input_ids dtype should be int32");
     CHECK_TH_CUDA(input_lengths);
     CHECK_CONTIGUOUS(input_lengths);
@@ -130,6 +133,7 @@ std::vector<th::Tensor> LlamaOp::forward(th::Tensor               input_ids,
                    sequence_lengths,
                    cum_log_probs,
                    output_log_probs,
+                   embed_output,
                    (const size_t)output_len,
                    (const size_t)beam_width,
                    top_k_opt,
