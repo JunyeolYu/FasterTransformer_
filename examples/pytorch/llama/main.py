@@ -16,8 +16,6 @@ from numpysocket import NumpySocket
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# from __future__ import print_function
-
 from torch.nn.utils.rnn import pad_sequence
 import os
 import sys
@@ -184,9 +182,10 @@ def main():
     start_dataset = time.time()
     print("After model loading, before preprocess {}".format(start_dataset - start_model))
 
-	# PGJ : Datapreprocessing
+	# PGJ : Data_ preprocessing / from other process (server)
     final_reqs = []
     port = 9020 + rank
+	
     with NumpySocket() as s:
         s.connect(("localhost", port))
         final_reqs = s.recv()
@@ -251,16 +250,13 @@ def main():
         end = time.time()
 
         t_total = end - start_main
-        t_load = start_eval - start_model
         t_eval = start_cal - start_eval
         t_cal = end - start_cal
 
         print(f"Total_time    : {t_total} s")
-        print(f"Preprocessing : {t_dataset} s")
-        print(f"Model_loading : {t_load} s")
+        print(f"Preprocessing + Model loading : {start_dataset - start_model} s")
         print(f"Evaluation    : {t_eval} s")
         print(f"Acc_Cal       : {t_cal} s")
-        print(f"Others        : {t_before} s")
     ####################################
 
 if __name__ == '__main__':
