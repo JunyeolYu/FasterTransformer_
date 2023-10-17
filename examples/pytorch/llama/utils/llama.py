@@ -113,6 +113,7 @@ class LlamaWeights(object):
     def _map(self, func):
         for i in range(len(self.w)):
             if isinstance(self.w[i], list):
+                pass
                 #for j in range(len(self.w[i])):
                 #    self.w[i][j] = func(self.w[i][j])
             else:
@@ -155,6 +156,7 @@ class LlamaWeights(object):
                                 dtype=self.weights_data_type)).to(self.inference_data_type))
                 else:
                     w.append(torch.empty(0).to(self.inference_data_type))
+                    #print("{} file_name and {} i".format(file_name, i))
 
         w.append(torch.from_numpy(np.fromfile(ckpt_path + "/model.wte.weight.bin", dtype=self.weights_data_type)).to(self.inference_data_type))
         w.append(torch.zeros(self.global_hidden_units, dtype=self.inference_data_type))                                     
