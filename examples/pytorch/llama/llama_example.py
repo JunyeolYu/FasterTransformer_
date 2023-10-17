@@ -40,8 +40,66 @@ def load_hellaswag():
     print("Hellaswag dataset load finish , len: " + str(len(validation_zeroshot)))
     return validation_zeroshot
 
+"""######################################KHAN######################################"""
+
+def precompute_freqs_cis(dim: int, end: int, theta: float = 10000.0):
+    freqs = 1.0 / (theta ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
+    t = torch.arange(end, device=freqs.device)  # type: ignore
+    freqs = torch.outer(t, freqs).float()  # type: ignore
+    freqs_cis = torch.polar(torch.ones_like(freqs), freqs)  # complex64
+    return freqs_cis
+
+class ModelArgs:
+    dim: int = 6656
+    n_layers: int = 60
+    n_heads: int = 52
+    vocab_size: int = -1  # defined later by tokenizer
+    multiple_of: int = 256  # make SwiGLU hidden layer size multiple of large power of 2
+    norm_eps: float = 1e-6
+
+    max_batch_size: int = 32
+    max_seq_len: int = 170
+
+
+class EmbeddingModule(torch.nn.Module):
+    def __init__(self, params: ModelArgs):
+
+        super().__init__()
+        
+        self.params = params
+        self.vocab_size = params.vocab_size
+        self.n_layers = params.n_layers
+
+        self.tok_embeddings = nn.Embedding(
+            params.vocab_size, params.dim
+        )
+        self.freqs_cis = precompute_freqs_cis(
+            self.params.dim // self.params.n_heads, self.params.max_seq_len * 2
+        )
+
+
+    @torch.inference_mode()
+    def forward(self, tokens: torch.Tensor, start_pos: int):
+        _bsz, seqlen = tokens.shape
+        h = self.tok_embeddings(tokens)
+        self.freqs_cis = self.freqs_cis.to(h.device)
+        freqs_cis = self.freqs_cis[start_pos : start_pos + seqlen]
+
+        mask = None
+        if seqlen > 1:
+            mask = torch.full((1, 1, seqlen, seqlen), float("-inf"), device=tokens.device)
+            mask = torch.triu(mask, diagonal=start_pos + 1).type_as(h)
+
+        return h, start_pos, freqs_cis, mask
+
+
+
+"""######################################KHAN######################################"""
+
+
+
 class RequestInstance:
-    def __init__(self, request_id, activity_label, context, endings, tokenizer, label):
+    def __init__(self, request_id, activity_label, context, endings, tokenizer, label, embedding_model):
         self.request_id = request_id
         self.activity_label = activity_label
         self.context = context
@@ -50,6 +108,7 @@ class RequestInstance:
         self.ending3 = endings[2]
         self.ending4 = endings[3]
         self.endings = []
+        self.embedding_model = embedding_model
         for i in range(4):
             self.endings.append(tokenizer.encode(self.preprocess(endings[i]))[1:])
 
@@ -67,16 +126,20 @@ class RequestInstance:
     def build_requests(self):
         self.context = self.tokenizer.encode(self.preprocess(self.activity_label) + self.preprocess(": ") + self.preprocess(self.context))[1:]
         return [
-            [self.request_id,len(self.context), self.context, 0.0, ending_tok, self.label, i, len(ending_tok)] for i,ending_tok in enumerate(self.endings)            
+            [self.request_id,
+            len(self.context), 
+            self.context, 0.0, ending_tok, self.label, i, len(ending_tok),
+            self.embedding_model(torch.unsqueeze(torch.tensor(self.context + ending_tok[:-1]),0), 0)]
+            for i,ending_tok in enumerate(self.endings)            
         ]
 
-def engineering_dataset(validation_zeroshot, tokenizer):
+def engineering_dataset(validation_zeroshot, tokenizer, emb_model):
     requests = []
     for i, row in tqdm(enumerate(validation_zeroshot)):
-        temp = RequestInstance(i, row['activity_label'], row['ctx'], row['endings'], tokenizer, int(row['label']))
+        temp = RequestInstance(i, row['activity_label'], row['ctx'], row['endings'], tokenizer, int(row['label']), emb_model)
         requests.extend(temp.requests)
 
-    requests = sorted(requests, key=lambda x: x[1] + x[-1], reverse=True)
+    requests = sorted(requests, key=lambda x: x[1] + x[7], reverse=True)
 
     max_tokens_40 = []
     max_tokens_80 = []
@@ -84,7 +147,7 @@ def engineering_dataset(validation_zeroshot, tokenizer):
     max_tokens_170 = []
 
     for r in requests:
-        ttt = r[1] + len(r[4])
+        ttt = r[1] + r[7]
         if ttt <= 40:
             max_tokens_40.append(r)
         elif ttt <= 80:
@@ -252,13 +315,16 @@ def main():
     # sentencepiece needed
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=False)
 
-    # PGJ : For Hellaswag
     start_dataset = time.time()
     validation_zeroshot = []
     final_reqs = []
     res = []
     validation_zeroshot = load_hellaswag()
-    final_reqs = engineering_dataset(validation_zeroshot, tokenizer)
+    #load the embedding model 
+    emb_model = torch.load(ckpt_path + "/emb_model.pt")
+    emb_model.eval()
+    #embedding_model = torch.nn.Embedding(vocab_size, size_per_head, padding_idx=0)
+    final_reqs = engineering_dataset(validation_zeroshot, tokenizer, emb_model)
 
     # Prepare model.
     start_model = time.time()
@@ -280,7 +346,10 @@ def main():
         prompts = final_reqs[i]
 
         prompt_tokens = [prompt[2]+prompt[4][:-1] for prompt in prompts]
-        prompt_size = [prompt[1]+prompt[-1]-1 for prompt in prompts]
+        #the embeds are (h, start_pos, freqs_cis, mask)
+        prompt_embeds = [prompt[8] for prompt in prompts]
+        #print(prompt_embeds[0][0].shape)
+        prompt_size = [prompt[1]+prompt[-2]-1 for prompt in prompts]
         start_lengths = torch.IntTensor(prompt_size)#[prompt[1] for prompt in prompts]
         
         tokens = torch.full((len(prompts), max(prompt_size)), 0, dtype = torch.int32, device='cuda')
@@ -311,7 +380,7 @@ def main():
                 
                 _res = []
                 for logits, prompt in zip(multi_logits, prompts):
-                    _input, ending, el = prompt[1]-1, prompt[4], prompt[-1]
+                    _input, ending, el = prompt[1]-1, prompt[4], prompt[-2]
                     logits = logits[_input:_input+el].unsqueeze(0)  # [1, seq, vocab]
                     ending = torch.tensor(ending, dtype=torch.long, device='cuda').view(1,-1,1)
                     answer = torch.gather(logits, 2, ending).squeeze(-1).sum()  # [1, ]
