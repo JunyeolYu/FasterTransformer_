@@ -35,8 +35,7 @@ from examples.pytorch.llama.utils.llama import Llama
 
 def load_hellaswag():
     hellaswag = datasets.load_dataset('hellaswag')
-    validation = hellaswag['validation']
-    validation_zeroshot = validation.filter(lambda example: example['split_type'] == 'zeroshot')
+    validation_zeroshot = hellaswag['validation']
     print("Hellaswag dataset load finish , len: " + str(len(validation_zeroshot)))
     return validation_zeroshot
 
@@ -139,6 +138,7 @@ def engineering_dataset(validation_zeroshot, tokenizer, emb_model):
         temp = RequestInstance(i, row['activity_label'], row['ctx'], row['endings'], tokenizer, int(row['label']), emb_model)
         requests.extend(temp.requests)
 
+    # requests = requests[:5000]
     requests = sorted(requests, key=lambda x: x[1] + x[7], reverse=True)
 
     max_tokens_40 = []
@@ -313,7 +313,7 @@ def main():
     print("=========================================\n")
 
     # sentencepiece needed
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=False)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=True, legacy=False)
 
     start_dataset = time.time()
     validation_zeroshot = []

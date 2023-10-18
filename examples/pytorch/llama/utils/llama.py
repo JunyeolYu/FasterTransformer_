@@ -93,7 +93,7 @@ class LlamaWeights(object):
         self.w.extend([torch.zeros(global_hidden_units, dtype=self.inference_data_type)] * layer_num)                           # 13 post_attention_layernorm_weights.gamma
 
         # After Transformer blocks
-        self.w.append(torch.zeros(vocab_size, global_hidden_units, dtype=self.inference_data_type))                             # pre_decoder_embedding_table
+        self.w.append(torch.zeros(1, dtype=self.inference_data_type))                             # pre_decoder_embedding_table
         self.w.append(torch.zeros(global_hidden_units, dtype=self.inference_data_type))                                         # post_decoder_layernorm.beta
         self.w.append(torch.zeros(global_hidden_units, dtype=self.inference_data_type))                                         # post_decoder_layernorm.gamma
         self.w.append(torch.zeros(vocab_size, global_hidden_units, dtype=self.inference_data_type))                             # post_decoder_embedding.kernel
@@ -156,7 +156,8 @@ class LlamaWeights(object):
                 else:
                     w.append(torch.empty(0).to(self.inference_data_type))
 
-        w.append(torch.from_numpy(np.fromfile(ckpt_path + "/model.wte.weight.bin", dtype=self.weights_data_type)).to(self.inference_data_type))
+        # w.append(torch.from_numpy(np.fromfile(ckpt_path + "/model.wte.weight.bin", dtype=self.weights_data_type)).to(self.inference_data_type))
+        w.append(torch.zeros(1, dtype=self.inference_data_type))
         w.append(torch.zeros(self.global_hidden_units, dtype=self.inference_data_type))                                     
         w.append(torch.from_numpy(np.fromfile(ckpt_path + "/model.final_layernorm.weight.bin", dtype=self.weights_data_type)).to(self.inference_data_type))
         w.append(torch.from_numpy(np.fromfile(ckpt_path + "/model.lm_head.weight.bin", dtype=self.weights_data_type)).to(self.inference_data_type))
@@ -268,6 +269,7 @@ class Llama(nn.Module):
                                                                self.start_id, self.end_id, self.tensor_para_size, self.pipeline_para_size,
                                                                self.max_seq_len, self.use_gptj_residual, self.weights.w)
         self.build_model = True
+        time.sleep(100)
         torch.cuda.empty_cache()
 
     def forward(self,
