@@ -665,7 +665,8 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                                         max_prefix_prompt_length,
                                         stream_);
         sync_check_cuda_error();
-
+        // 출력 input_tensors->at("embed_output").getPtr<half>()
+        
         std::unordered_map<std::string, Tensor> decoder_input_tensors{
             {"decoder_input",
              Tensor{MEMORY_GPU,

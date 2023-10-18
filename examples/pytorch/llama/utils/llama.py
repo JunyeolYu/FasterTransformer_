@@ -269,7 +269,6 @@ class Llama(nn.Module):
                                                                self.start_id, self.end_id, self.tensor_para_size, self.pipeline_para_size,
                                                                self.max_seq_len, self.use_gptj_residual, self.weights.w)
         self.build_model = True
-        time.sleep(100)
         torch.cuda.empty_cache()
 
     def forward(self,
