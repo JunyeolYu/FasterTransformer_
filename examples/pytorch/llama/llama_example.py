@@ -23,7 +23,7 @@ import configparser
 import timeit
 import torch
 import torch.distributed as dist
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, LlamaTokenizer
 import datasets
 import re
 from tqdm import tqdm
@@ -35,8 +35,7 @@ from examples.pytorch.llama.utils.llama import Llama
 
 def load_hellaswag():
     hellaswag = datasets.load_dataset('hellaswag')
-    validation = hellaswag['validation']
-    validation_zeroshot = validation.filter(lambda example: example['split_type'] == 'zeroshot')
+    validation_zeroshot = hellaswag['validation']
     print("Hellaswag dataset load finish , len: " + str(len(validation_zeroshot)))
     return validation_zeroshot
 

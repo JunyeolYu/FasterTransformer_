@@ -408,7 +408,7 @@ void ftNcclInitialize(NcclParam& tensor_para,
     pipeline_para.rank_       = pp_rank;
     pipeline_para.nccl_uid_   = pp_uid;
     pipeline_para.nccl_comm_  = pp_nccl_comm;
-    FT_LOG_INFO("NCCL initialized rank=%d world_size=%d tensor_para=%s pipeline_para=%s",
+    FT_LOG_DEBUG("NCCL initialized rank=%d world_size=%d tensor_para=%s pipeline_para=%s",
                 rank,
                 world_size,
                 tensor_para.toString().c_str(),

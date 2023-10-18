@@ -43,7 +43,7 @@ void cublasAlgoMap::loadGemmConfig()
     FILE* fd;
     fd = fopen(config_filename_.c_str(), "r");
     if (fd == NULL) {
-        std::cout << "[WARNING] " << config_filename_ << " is not found; using default GEMM algo" << std::endl;
+        // std::cout << "[WARNING] " << config_filename_ << " is not found; using default GEMM algo" << std::endl;
         return;
     }
 
