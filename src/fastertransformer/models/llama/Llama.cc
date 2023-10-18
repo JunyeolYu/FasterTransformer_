@@ -19,6 +19,7 @@
 #include "src/fastertransformer/kernels/decoding_kernels.h"
 #include "src/fastertransformer/kernels/gpt_kernels.h"
 #include "src/fastertransformer/layers/beam_search_layers/BaseBeamSearchLayer.h"
+#include "src/fastertransformer/utils/nvtx_utils.h"
 #include <algorithm>
 
 namespace fastertransformer {
@@ -410,6 +411,9 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                          const std::unordered_map<std::string, Tensor>* input_tensors,
                          const LlamaWeight<T>*                        gpt_weights)
 {
+    ft_nvtx::resetScope();
+    ft_nvtx::setScope("Start FW");
+    PUSH_RANGE("Others");
     // input_tensors:
     //      input_ids [batch_size, max_input_length]
     //      input_lengths [batch_size]
@@ -606,9 +610,14 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
     }
 
     sync_check_cuda_error();
+    POP_RANGE
+
 
     // handle first step
     if (has_prefix_prompt_ || has_prefix_soft_prompt_ || max_input_length > 1) {
+        ft_nvtx::resetScope();
+        ft_nvtx::setScope("FirstStep");
+        PUSH_RANGE("TileGptInputs");
         invokeTileGptInputs(tiled_input_ids_buf_,
                             tiled_input_lengths_buf_,
                             input_tensors->at("input_ids").getPtr<int>(),
@@ -618,7 +627,7 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                             max_input_length,
                             stream_);
         sync_check_cuda_error();
-
+        POP_RANGE
         // if (has_prefix_soft_prompt_) {
         //     inputIdsEmbeddingLookupPosEncodingSoftPromptParam<T> param;
         //     param.from_tensor                   = context_decoder_input_buf_;
@@ -656,7 +665,7 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
         //     //                                          stream_);
         //     sync_check_cuda_error();
         // }
-
+        PUSH_RANGE("BuildDecoderAttenMask");
         invokeBuildDecoderAttentionMask(input_attention_mask_,
                                         tiled_input_lengths_buf_,
                                         tiled_prompt_lengths_buf_,
@@ -665,8 +674,9 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                                         max_prefix_prompt_length,
                                         stream_);
         sync_check_cuda_error();
+        POP_RANGE
         // 출력 input_tensors->at("embed_output").getPtr<half>()
-        
+        PUSH_RANGE("input_");
         std::unordered_map<std::string, Tensor> decoder_input_tensors{
             {"decoder_input",
              Tensor{MEMORY_GPU,
@@ -692,7 +702,8 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                     TYPE_INT32,
                     {batch_size * beam_width},
                     has_prefix_prompt_ ? tiled_prompt_lengths_buf_ : nullptr}}};
-
+        POP_RANGE
+        PUSH_RANGE("output_");
         std::unordered_map<std::string, Tensor> decoder_output_tensors{
             {"decoder_output",
              Tensor{MEMORY_GPU,
@@ -703,20 +714,24 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
             {"value_cache", Tensor{MEMORY_GPU, data_type, self_v_cache_shape, value_cache_}},
             {"last_token_hidden_units",
              Tensor{MEMORY_GPU, data_type, {batch_size * beam_width, hidden_units_}, decoder_output_buf_}}};
-
+        POP_RANGE
+        ft_nvtx::resetScope();
+        ft_nvtx::setScope("FORWARD");
         gpt_context_decoder_->forward(
             &decoder_output_tensors, &decoder_input_tensors, &gpt_weights->decoder_layer_weights);
         sync_check_cuda_error();
-        invokeDecodingInitialize(finished_buf_,
-                                 sequence_lengths_,
-                                 nullptr,
-                                 cum_log_probs_,
-                                 start_ids_buf_,
-                                 batch_size,
-                                 beam_width,
-                                 max_input_length - 1,
-                                 stream_);
-        sync_check_cuda_error();
+        ft_nvtx::resetScope();
+        
+        // invokeDecodingInitialize(finished_buf_,
+        //                          sequence_lengths_,
+        //                          nullptr,
+        //                          cum_log_probs_,
+        //                          start_ids_buf_,
+        //                          batch_size,
+        //                          beam_width,
+        //                          max_input_length - 1,
+        //                          stream_);
+        // sync_check_cuda_error();
     }
     // else if (max_input_length == 0) {
     //     FT_CHECK(prompt_learning_type_ == PromptLearningType::no_prompt
@@ -768,10 +783,13 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
     //                     cudaMemcpyDeviceToDevice,
     //                     stream_);
     // }
-
+    ft_nvtx::setScope("padded_emb");
+    PUSH_RANGE("p");
     if (vocab_size_ == vocab_size_padded_) {
         padded_embedding_kernel_ptr_ = gpt_weights->post_decoder_embedding.kernel;
     }
+    POP_RANGE
+    ft_nvtx::resetScope();
     // else {
     //     cudaMemcpyAsync(padded_embedding_kernel_,
     //                     gpt_weights->post_decoder_embedding.kernel,
@@ -796,6 +814,9 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
     //                         beam_width,
     //                         stream_);
     if (pipeline_para_.rank_ == pipeline_para_.world_size_ - 1) {
+        ft_nvtx::resetScope();
+        ft_nvtx::setScope("Last");
+        PUSH_RANGE("Layer Norm");
         // LlamaRMSNorm()
         invokeGeneralT5LayerNorm(normed_context_decoder_output_buf_,   // output
                             context_decoder_output_buf_,               // input
@@ -805,9 +826,10 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                             batch_size * beam_width * max_input_length,// m
                             hidden_units_,                             // n
                             stream_);
-
+        POP_RANGE
         // lm_head linear
         // Expected output tensor size is (bs, seq_len, vocab_size)
+        PUSH_RANGE("GEMM");
         cublas_wrapper_->Gemm(CUBLAS_OP_T,
                                 CUBLAS_OP_N,
                                 vocab_size_padded_,  // m = output row
@@ -820,6 +842,7 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                                 lm_head_context_decoder_output_buf_,
                                 vocab_size_padded_
                                 );
+        POP_RANGE
         // Print tenser for debugging
         // for (int bs = 0; bs < batch_size; bs++) {
         //     for(int i = max_input_length-2; i<max_input_length; i++) {
@@ -827,6 +850,7 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
         //         print_to_screen(lm_head_context_decoder_output_buf_ + vocab_size_padded_*(bs*max_input_length + i), 128);
         //     }
         // }
+        ft_nvtx::resetScope();
     }
 
     // invokeMaskPaddingTokens(masked_tokens_,
@@ -1114,8 +1138,11 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
     //     }
     // }
 
+    ft_nvtx::setScope("SetOutput");
+    PUSH_RANGE("SetOutput");
     setOutputTensors(output_tensors, input_tensors, max_input_length, max_output_seq_len);
-    
+    POP_RANGE
+    ft_nvtx::resetScope();
     // This is required for for the generation phase
     // sendTensorsToFirstPipelineNode(output_tensors, input_tensors);
 }

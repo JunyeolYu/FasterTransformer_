@@ -19,6 +19,7 @@
 #include "src/fastertransformer/th_op/th_utils.h"
 #include "src/fastertransformer/utils/cuda_bf16_wrapper.h"
 #include "src/fastertransformer/utils/nccl_utils.h"
+#include "src/fastertransformer/utils/nvtx_utils.h"
 #define PYBIND11_DETAILED_ERROR_MESSAGES
 
 namespace ft = fastertransformer;
@@ -81,12 +82,14 @@ public:
         tensor_para_size_(tensor_para_size),
         pipeline_para_size_(pipeline_para_size)
     {
+        PUSH_RANGE("NCCL init");
         ft::check_cuda_error(cublasLtCreate(&cublasltHandle_));
         cublas_algo_map_      = new ft::cublasAlgoMap(GEMM_CONFIG, "");
         cublas_wrapper_mutex_ = new std::mutex();
 
         ftNcclInitialize(tensor_para_, pipeline_para_, tensor_para_size, pipeline_para_size);
-
+        POP_RANGE
+        PUSH_RANGE("Weight init");
         Llama_weights_.resizeLayer(layer_num_);
         for (int i = 0; i < (int)layer_num_; i++) {
             Llama_weights_.decoder_layer_weights[i]->pre_layernorm_weights.beta =
@@ -125,7 +128,7 @@ public:
         Llama_weights_.post_decoder_embedding.kernel = get_ptr<T>(weights_[14 * layer_num_ + 3]);
 
         Llama_weights_.setMaxSeqLen(max_seq_len);
-
+        POP_RANGE
         ft::check_cuda_error(cudaGetDeviceProperties(&prop_, 0));
     }
 

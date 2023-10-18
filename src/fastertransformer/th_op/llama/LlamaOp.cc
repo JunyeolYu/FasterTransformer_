@@ -15,6 +15,7 @@
  */
 
 #include "src/fastertransformer/th_op/llama/LlamaOp.h"
+#include "src/fastertransformer/utils/nvtx_utils.h"
 
 namespace th = torch;
 namespace ft = fastertransformer;
@@ -39,7 +40,8 @@ LlamaOp::LlamaOp(const int64_t                head_num,
     for (auto t : weights) {
         CHECK_INPUT(t, st_);
     }
-
+    ft_nvtx::resetScope();
+    ft_nvtx::setScope("Model");
     switch (st_) {
         case at::ScalarType::Float:
             ftllama = new FTLlama<float>((size_t)head_num,
@@ -76,6 +78,7 @@ LlamaOp::LlamaOp(const int64_t                head_num,
         default:
             throw std::runtime_error("Wrong Tensor type.");
     }
+    ft_nvtx::resetScope();
 }
 
 LlamaOp::~LlamaOp()
