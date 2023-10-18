@@ -237,8 +237,8 @@ class Llama(nn.Module):
         torch.cuda.set_device(self.device)
 
         world_size = dist.get_world_size()
-        print("world size is " + str(world_size))
-        print(str(tensor_para_size * pipeline_para_size) + f"<<- TP({tensor_para_size}) * PP({pipeline_para_size})")
+        # print("world size is " + str(world_size))
+        # print(str(tensor_para_size * pipeline_para_size) + f"<<- TP({tensor_para_size}) * PP({pipeline_para_size})")
         assert world_size == tensor_para_size * pipeline_para_size, "tensor_para_size * pipeline_para_size must be equal to world_size."
 
         self.tensor_para_rank = self.rank % self.tensor_para_size

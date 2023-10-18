@@ -71,10 +71,11 @@ class RequestInstance:
 
 def engineering_dataset(validation_zeroshot, tokenizer):
     requests = []
-    for i, row in tqdm(enumerate(validation_zeroshot)):
+    for i, row in enumerate(validation_zeroshot):
         temp = RequestInstance(i, row['activity_label'], row['ctx'], row['endings'], tokenizer, int(row['label']))
         requests.extend(temp.requests)
 
+    # requests = requests[:4000]
     requests = sorted(requests, key=lambda x: x[1] + x[-1], reverse=True)
 
     max_tokens_40 = []
@@ -96,8 +97,8 @@ def engineering_dataset(validation_zeroshot, tokenizer):
     max_batch_sizes_config = [248, 126, 69, 60][::-1] # FT 우리가 수정한 기본 버전으로 돌렸을 때 max [496, 252, 138, 120]
     
     print("bucket: ",len(max_tokens_40), len(max_tokens_80), len(max_tokens_120), len(max_tokens_170))
-    for x,y in zip([max_tokens_40,max_tokens_80,max_tokens_120,max_tokens_170],max_batch_sizes_config[::-1]):
-        print(len(x), y, len(x)/y)
+    # for x,y in zip([max_tokens_40,max_tokens_80,max_tokens_120,max_tokens_170],max_batch_sizes_config[::-1]):
+    #     print(len(x), y, len(x)/y)
 
     final_reqs = []
     
@@ -244,12 +245,13 @@ def main():
         os.sys.stderror = open(os.devnull, "w")
 
     print("\n=============== Arguments ===============")
-    for arg in vars(args):
+    args_ = vars(args)
+    for arg in ["pipeline_para_size","tensor_para_size","ckpt_path","tokenizer_path","lib_path"]:
         print("{}: {}".format(arg, getattr(args, arg)))
     print("=========================================\n")
 
     # sentencepiece needed
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=False)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=True, legacy=False)
 
     # PGJ : For Hellaswag
     start_dataset = time.time()
