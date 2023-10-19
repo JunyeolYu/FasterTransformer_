@@ -123,7 +123,7 @@ std::vector<th::Tensor> LlamaOp::forward(th::Tensor               input_ids,
     th::Tensor cum_log_probs =
         torch::empty({batch_size, beam_width}, torch::dtype(torch::kFloat32).device(torch::kCUDA).requires_grad(false));
     th::Tensor output_log_probs = // FIXME: vocab size is hard-coded.
-        torch::empty({batch_size * beam_width, max_input_length, 32000}, torch::dtype(torch::kFloat16).device(torch::kCUDA).requires_grad(false));
+        torch::empty({batch_size * beam_width, max_input_length, 6656}, torch::dtype(torch::kFloat16).device(torch::kCUDA).requires_grad(false));
     ftllama->forward(input_ids,
                    input_lengths,
                    output_ids,

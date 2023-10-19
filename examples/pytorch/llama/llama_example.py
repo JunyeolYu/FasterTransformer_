@@ -28,6 +28,10 @@ import datasets
 import re
 from tqdm import tqdm
 import time 
+import pickle
+from multiprocessing import Process, Queue, Value
+
+from cpu_side import cpu_job
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dir_path + "/../../..")
@@ -70,12 +74,13 @@ class RequestInstance:
         ]
 
 def engineering_dataset(validation_zeroshot, tokenizer):
+
     requests = []
     for i, row in enumerate(validation_zeroshot):
         temp = RequestInstance(i, row['activity_label'], row['ctx'], row['endings'], tokenizer, int(row['label']))
         requests.extend(temp.requests)
 
-    # requests = requests[:4000]
+    requests = requests[:4000]
     requests = sorted(requests, key=lambda x: x[1] + x[-1], reverse=True)
 
     max_tokens_40 = []
@@ -94,7 +99,7 @@ def engineering_dataset(validation_zeroshot, tokenizer):
         elif ttt <= 170:
             max_tokens_170.append(r)
 
-    max_batch_sizes_config = [248, 126, 69, 60][::-1] # FT 우리가 수정한 기본 버전으로 돌렸을 때 max [496, 252, 138, 120]
+    max_batch_sizes_config = [248*2, 126*2, 69*2, 60*2][::-1] # FT 우리가 수정한 기본 버전으로 돌렸을 때 max [496, 252, 138, 120]
     
     print("bucket: ",len(max_tokens_40), len(max_tokens_80), len(max_tokens_120), len(max_tokens_170))
     # for x,y in zip([max_tokens_40,max_tokens_80,max_tokens_120,max_tokens_170],max_batch_sizes_config[::-1]):
@@ -117,43 +122,9 @@ def engineering_dataset(validation_zeroshot, tokenizer):
             final_reqs.append(current_list[j:j+max_batch_sizes_config[i]])
     return final_reqs
 
-def calculate_accuracy(res):
-    acc = 0
-    nacc = 0
 
-    for r in range(0,len(res), 4):
-        try:
-            outs = sorted(res[r:r+4], key=lambda x: x[6])
-            # assert that outs order is correct
-            assert outs[0][6] == 0
-            assert outs[1][6] == 1
-            assert outs[2][6] == 2
-            assert outs[3][6] == 3
 
-            # [self.request_id,len(self.context), self.context, 0.0, ending_tok, self.label, i]
-            logs = [out[3] for out in outs]
 
-            ending_lens = [len(out[4]) for out in outs]
-            nlogs = [log/ending_lens[i] for i,log in enumerate(logs)]
-
-            pred_label = logs.index(max(logs))
-            norm_pred_label = nlogs.index(max(nlogs))
-
-            label = outs[0][5]
-
-            if pred_label == label:
-                acc += 1
-            if norm_pred_label == label:
-                nacc += 1
-        except:
-            print("Failed while calculating accuracy")
-            pass
-    
-    total_len = len(res)/4
-    acc = acc/total_len
-    nacc = nacc/total_len
-    print("Accuracy:", acc)
-    print("Normalized Accuracy:", nacc)
 
 def main():
     start_main = time.time()
@@ -250,6 +221,19 @@ def main():
         print("{}: {}".format(arg, getattr(args, arg)))
     print("=========================================\n")
 
+    if rank == 3:
+        
+        q = torch.multiprocessing.Queue()
+        acc = torch.multiprocessing.Value('d', 0.0)
+        nacc = torch.multiprocessing.Value('d', 0.0)
+        start_value = torch.multiprocessing.Value('i', 0)
+        start_value.value = 1
+
+        cpu_process = torch.multiprocessing.Process(target=cpu_job, args=(q,start_value,acc, nacc,))
+        cpu_process.start()
+
+
+
     # sentencepiece needed
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=True, legacy=False)
 
@@ -258,6 +242,7 @@ def main():
     validation_zeroshot = []
     final_reqs = []
     res = []
+
     validation_zeroshot = load_hellaswag()
     final_reqs = engineering_dataset(validation_zeroshot, tokenizer)
 
@@ -272,6 +257,8 @@ def main():
 
     if not llama.load(ckpt_path=ckpt_path):
         print("[WARNING] Checkpoint file not found. Model loading is skipped.")
+
+
     
     ########### Eval Harness ###########
     res = []
@@ -307,41 +294,25 @@ def main():
                 return_output_length=True,
                 return_cum_log_probs=0)
 
-            if(rank == 3):
-                multi_logits = torch.nn.functional.log_softmax(output_log_probs, dim=-1)
-                
-                _res = []
-                for logits, prompt in zip(multi_logits, prompts):
-                    _input, ending, el = prompt[1]-1, prompt[4], prompt[-1]
-                    logits = logits[_input:_input+el].unsqueeze(0)  # [1, seq, vocab]
-                    ending = torch.tensor(ending, dtype=torch.long, device='cuda').view(1,-1,1)
-                    answer = torch.gather(logits, 2, ending).squeeze(-1).sum()  # [1, ]
-                    _res.append(answer)
-                for prompt, ans in zip(prompts, _res):
-                    prompt[3] = ans
-            if(rank == 3):
-                res.extend(prompts)
-    if(rank == 3):
-        start_cal = time.time()
-        res = sorted(res, key=lambda x: x[0])
-        calculate_accuracy(res)
+            if rank == 3:
+                cpu_data = (prompts, output_log_probs.cpu())
+                cpu_data = pickle.dumps(cpu_data)
+                q.put(cpu_data)
 
-        end = time.time()
 
-        t_total = end - start_main
-        t_before = start_dataset - start_main
-        t_dataset = start_model - start_dataset
-        t_load = start_eval - start_model
-        t_eval = start_cal - start_eval
-        t_cal = end - start_cal
+    if rank == 3:
+        start_value.value = 0
+        cpu_process.join()
+        print("Accuracy Value: {}".format(acc.value))
+        print("Normalized Accuracy Value: {}".format(nacc.value))
 
-        print(f"Total_time    : {t_total} s")
-        print(f"Preprocessing : {t_dataset} s")
-        print(f"Model_loading : {t_load} s")
-        print(f"Evaluation    : {t_eval} s")
-        print(f"Acc_Cal       : {t_cal} s")
-        print(f"Others        : {t_before} s")
-    ####################################
+
+    # sync all processes
+    if dist.is_initialized():
+        dist.barrier()
+    
+
+
 
 if __name__ == '__main__':
     main()

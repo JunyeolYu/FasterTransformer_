@@ -283,7 +283,7 @@ public:
             output_tensors.insert({"logits_buf",
                                    ft::Tensor{ft::MEMORY_GPU,
                                               ft::TYPE_FP16,
-                                              std::vector<size_t>{request_batch_size * beam_width, (size_t)max_input_length, 32000},
+                                              std::vector<size_t>{request_batch_size * beam_width, (size_t)max_input_length, 6656},
                                               get_ptr<half>(output_log_probs)}});
         }
         
