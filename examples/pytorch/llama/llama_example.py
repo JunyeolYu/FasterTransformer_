@@ -306,7 +306,7 @@ def main():
                 random_seed=torch.zeros([batch_size], dtype=torch.int64),
                 return_output_length=True,
                 return_cum_log_probs=0)
-            torch.cuda.empty_cache()
+
             if(rank == 3):
                 multi_logits = torch.nn.functional.log_softmax(output_log_probs, dim=-1)
                 
