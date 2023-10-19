@@ -88,8 +88,8 @@ protected:
     T* decoder_input_buf_;
     T* decoder_output_buf_;
 
-    T*   key_cache_;
-    T*   value_cache_;
+    // T*   key_cache_;
+    // T*   value_cache_;
 
     // prompt_learning weight_batch ptrs
     // const T** prompt_learning_weight_batch_;

@@ -208,9 +208,9 @@ void LlamaContextDecoder<T>::forward(std::vector<Tensor>*                       
                                                               {"attention_mask", input_tensors->at(1)},
                                                               {"input_lengths", input_tensors->at(2)}};
     std::unordered_map<std::string, Tensor> output_tensors_map{{"decoder_output", output_tensors->at(0)},
-                                                               {"key_cache", output_tensors->at(1)},
-                                                               {"value_cache", output_tensors->at(2)},
-                                                               {"last_token_hidden_units", output_tensors->at(3)}};
+                                                            //    {"key_cache", output_tensors->at(1)},
+                                                            //    {"value_cache", output_tensors->at(2)},
+                                                               {"last_token_hidden_units", output_tensors->at(1)}};
 
     forward(&output_tensors_map, &input_tensors_map, gpt_decoder_layer_weight);
 }
@@ -239,7 +239,7 @@ void LlamaContextDecoder<T>::forward(std::unordered_map<std::string, Tensor>*   
     // computing.
 
     FT_CHECK(input_tensors->size() == 5);
-    FT_CHECK(output_tensors->size() == 4);
+    FT_CHECK(output_tensors->size() == 2);
 
     const int batch_size = input_tensors->at("decoder_input").shape[0];
     const int seq_len    = input_tensors->at("decoder_input").shape[1];
@@ -258,18 +258,18 @@ void LlamaContextDecoder<T>::forward(std::unordered_map<std::string, Tensor>*   
     FT_CHECK(batch_size % local_batch_size == 0);
     const int iteration_num = batch_size / local_batch_size;
 
-    Tensor&             k_cache = output_tensors->at("key_cache");
-    Tensor&             v_cache = output_tensors->at("value_cache");
-    std::vector<size_t> self_k_cache_size;
-    self_k_cache_size.push_back(local_batch_size);
-    for (auto t = k_cache.shape.begin() + 2; t != k_cache.shape.end(); ++t) {
-        self_k_cache_size.push_back(*t);
-    }
-    std::vector<size_t> self_v_cache_size;
-    self_v_cache_size.push_back(local_batch_size);
-    for (auto t = v_cache.shape.begin() + 2; t != v_cache.shape.end(); ++t) {
-        self_v_cache_size.push_back(*t);
-    }
+    // Tensor&             k_cache = output_tensors->at("key_cache");
+    // Tensor&             v_cache = output_tensors->at("value_cache");
+    // std::vector<size_t> self_k_cache_size;
+    // self_k_cache_size.push_back(local_batch_size);
+    // for (auto t = k_cache.shape.begin() + 2; t != k_cache.shape.end(); ++t) {
+    //     self_k_cache_size.push_back(*t);
+    // }
+    // std::vector<size_t> self_v_cache_size;
+    // self_v_cache_size.push_back(local_batch_size);
+    // for (auto t = v_cache.shape.begin() + 2; t != v_cache.shape.end(); ++t) {
+    //     self_v_cache_size.push_back(*t);
+    // }
 
     AttentionType attention_type  = (d_prefix_prompt_lengths != nullptr) ?
                                         getUnfusedAttentionType(attention_type_) :
@@ -371,22 +371,23 @@ void LlamaContextDecoder<T>::forward(std::unordered_map<std::string, Tensor>*   
                     "cu_seqlens", Tensor{MEMORY_GPU, TYPE_INT32, {size_t(local_batch_size + 1)}, cu_seqlens_});
             }
 
-            size_t cache_offset = l - getFirstLayerParallelId();
-            for (auto t = k_cache.shape.begin() + 1; t != k_cache.shape.end(); ++t) {
-                cache_offset *= *t;
-            };
-            size_t ite_cache_offset = ite * local_batch_size;
-            for (auto t = k_cache.shape.begin() + 2; t != k_cache.shape.end(); ++t) {
-                ite_cache_offset *= *t;
-            }
-            cache_offset += ite_cache_offset;
+            // size_t cache_offset = l - getFirstLayerParallelId();
+            // for (auto t = k_cache.shape.begin() + 1; t != k_cache.shape.end(); ++t) {
+            //     cache_offset *= *t;
+            // };
+            // size_t ite_cache_offset = ite * local_batch_size;
+            // for (auto t = k_cache.shape.begin() + 2; t != k_cache.shape.end(); ++t) {
+            //     ite_cache_offset *= *t;
+            // }
+            // cache_offset += ite_cache_offset;
 
             TensorMap self_attention_output_tensors{
                 {"hidden_features",
-                 Tensor{MEMORY_GPU, data_type, {h_token_num, (size_t)hidden_units_}, self_attn_output_}},
-                {"key_cache", Tensor{MEMORY_GPU, data_type, self_k_cache_size, k_cache.getPtrWithOffset(cache_offset)}},
-                {"value_cache",
-                 Tensor{MEMORY_GPU, data_type, self_v_cache_size, v_cache.getPtrWithOffset(cache_offset)}}};
+                 Tensor{MEMORY_GPU, data_type, {h_token_num, (size_t)hidden_units_}, self_attn_output_}}
+                // {"key_cache", Tensor{MEMORY_GPU, data_type, self_k_cache_size, k_cache.getPtrWithOffset(cache_offset)}},
+                // {"value_cache",
+                //  Tensor{MEMORY_GPU, data_type, self_v_cache_size, v_cache.getPtrWithOffset(cache_offset)}}
+                };
 
             self_attention_layer_->forward(&self_attention_output_tensors,
                                            &self_attention_input_tensors,

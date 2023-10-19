@@ -44,9 +44,9 @@ void GptContextAttentionLayer<T>::forward(TensorMap*                output_tenso
     //      key_cache [batch, local_head_num, size_per_head // x, max_seq_len, x]
     //      value_cache [batch, local_head_num, max_seq_len, size_per_head]
     FT_LOG_DEBUG("%s start", __PRETTY_FUNCTION__);
-    FT_CHECK(output_tensors->at("key_cache").shape.size() == 5);
-    FT_CHECK(output_tensors->at("value_cache").shape.size() == 4
-             || output_tensors->at("value_cache").shape.size() == 3);
+    // FT_CHECK(output_tensors->at("key_cache").shape.size() == 5);
+    // FT_CHECK(output_tensors->at("value_cache").shape.size() == 4
+    //          || output_tensors->at("value_cache").shape.size() == 3);
     const int request_batch_size = input_tensors->at("attention_mask").shape[0];
     const int request_seq_len    = input_tensors->at("attention_mask").shape[2];
     const int max_prompt_length =
@@ -172,20 +172,20 @@ void GptContextAttentionLayer<T>::forward(TensorMap*                output_tenso
                                    stream_);
     sync_check_cuda_error();
 
-    const int max_seq_len = (int)(output_tensors->at("key_cache").shape[3]);  // max output seq length
+    // const int max_seq_len = (int)(output_tensors->at("key_cache").shape[3]);  // max output seq length
     // Use batch major
     // put k/v_buf from shape [B, H, PL + L, Dh]
     // to cache [B, H, Dh/x, PL + L, x]  and [B, H, PL + L, Dh/x, x], PL denotes prompt length
-    invokeTranspose4dBatchMajor(output_tensors->getPtr<T>("key_cache"),
-                                output_tensors->getPtr<T>("value_cache"),
-                                k_buf_2_,
-                                v_buf_2_,
-                                request_batch_size,
-                                max_prompt_length + request_seq_len,  // max input length + prefix prompt length
-                                max_seq_len,
-                                size_per_head_,
-                                local_head_num_,
-                                stream_);
+    // invokeTranspose4dBatchMajor(output_tensors->getPtr<T>("key_cache"),
+    //                             output_tensors->getPtr<T>("value_cache"),
+    //                             k_buf_2_,
+    //                             v_buf_2_,
+    //                             request_batch_size,
+    //                             max_prompt_length + request_seq_len,  // max input length + prefix prompt length
+    //                             max_seq_len,
+    //                             size_per_head_,
+    //                             local_head_num_,
+    //                             stream_);
     // IDEA : after this, k_cache = (batch_size, num_heads, Dh/x, prefix_prompt_len + L, x)
     // k_cache = (batch_size, num_heads, prefix_prompt_len + L, Dh)
     sync_check_cuda_error();

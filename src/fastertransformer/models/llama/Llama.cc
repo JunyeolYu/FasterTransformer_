@@ -88,8 +88,8 @@ void Llama<T>::allocateBuffer(
     decoder_output_buf_ =
         (T*)(allocator_->reMalloc(decoder_output_buf_, sizeof(T) * batchxbeam * hidden_units_, false));
 
-    key_cache_   = (T*)(allocator_->reMalloc(key_cache_, sizeof(T) * self_cache_size * 2, true));
-    value_cache_ = key_cache_ + self_cache_size;
+    // key_cache_   = (T*)(allocator_->reMalloc(key_cache_, sizeof(T) * self_cache_size * 2, true));
+    // value_cache_ = key_cache_ + self_cache_size;
 
     // prompt_learning weight batch ptrs
     // prompt_learning_weight_batch_ =
@@ -123,7 +123,7 @@ void Llama<T>::freeBuffer()
         allocator_->free((void**)(&input_attention_mask_));
         allocator_->free((void**)(&decoder_input_buf_));
         allocator_->free((void**)(&decoder_output_buf_));
-        allocator_->free((void**)(&key_cache_));
+        // allocator_->free((void**)(&key_cache_));
         // allocator_->free((void**)(&prompt_learning_weight_batch_));
         allocator_->free((void**)(&tiled_prompt_lengths_buf_));
         allocator_->free((void**)(&tiled_input_ids_buf_));
@@ -470,17 +470,17 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
     
     const DataType data_type = getTensorType<T>();
 
-    const std::vector<size_t> self_k_cache_shape = {num_layer_ / pipeline_para_.world_size_,
-                                                    batch_size * beam_width,
-                                                    local_head_num_,
-                                                    size_per_head_ / (16 / sizeof(T)),
-                                                    max_cache_seq_len,
-                                                    16 / sizeof(T)};
-    const std::vector<size_t> self_v_cache_shape = {num_layer_ / pipeline_para_.world_size_,
-                                                    batch_size * beam_width,
-                                                    local_head_num_,
-                                                    max_cache_seq_len,
-                                                    size_per_head_};
+    // const std::vector<size_t> self_k_cache_shape = {num_layer_ / pipeline_para_.world_size_,
+    //                                                 batch_size * beam_width,
+    //                                                 local_head_num_,
+    //                                                 size_per_head_ / (16 / sizeof(T)),
+    //                                                 max_cache_seq_len,
+    //                                                 16 / sizeof(T)};
+    // const std::vector<size_t> self_v_cache_shape = {num_layer_ / pipeline_para_.world_size_,
+    //                                                 batch_size * beam_width,
+    //                                                 local_head_num_,
+    //                                                 max_cache_seq_len,
+    //                                                 size_per_head_};
 
     // Prefix prompts
     // if (has_prefix_prompt_) {
@@ -567,8 +567,8 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                     data_type,
                     {batch_size * beam_width, (size_t)max_input_length, hidden_units_},
                     context_decoder_output_buf_}},
-            {"key_cache", Tensor{MEMORY_GPU, data_type, self_k_cache_shape, key_cache_}},
-            {"value_cache", Tensor{MEMORY_GPU, data_type, self_v_cache_shape, value_cache_}},
+            // {"key_cache", Tensor{MEMORY_GPU, data_type, self_k_cache_shape, key_cache_}},
+            // {"value_cache", Tensor{MEMORY_GPU, data_type, self_v_cache_shape, value_cache_}},
             {"last_token_hidden_units",
              Tensor{MEMORY_GPU, data_type, {batch_size * beam_width, hidden_units_}, decoder_output_buf_}}};
 
@@ -594,18 +594,18 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
 
         // lm_head linear
         // Expected output tensor size is (bs, seq_len, vocab_size)
-        cublas_wrapper_->Gemm(CUBLAS_OP_T,
-                                CUBLAS_OP_N,
-                                vocab_size_padded_,  // m = output row
-                                batch_size * beam_width * max_input_length, // n = output col
-                                hidden_units_,  // k = common dimension
-                                padded_embedding_kernel_ptr_,
-                                hidden_units_,  // k
-                                normed_context_decoder_output_buf_,
-                                hidden_units_,
-                                output_tensors->at("logits_buf").getPtr<half>(),
-                                vocab_size_padded_
-                                );
+        // cublas_wrapper_->Gemm(CUBLAS_OP_T,
+        //                         CUBLAS_OP_N,
+        //                         vocab_size_padded_,  // m = output row
+        //                         batch_size * beam_width * max_input_length, // n = output col
+        //                         hidden_units_,  // k = common dimension
+        //                         padded_embedding_kernel_ptr_,
+        //                         hidden_units_,  // k
+        //                         normed_context_decoder_output_buf_,
+        //                         hidden_units_,
+        //                         output_tensors->at("logits_buf").getPtr<half>(),
+        //                         vocab_size_padded_
+        //                         );
         // Print tenser for debugging
         // for (int bs = 0; bs < batch_size; bs++) {
         //     for(int i = max_input_length-2; i<max_input_length; i++) {
