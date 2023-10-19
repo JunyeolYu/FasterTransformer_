@@ -70,7 +70,7 @@ private:
     bool               has_prefix_prompt_;
     bool               has_prefix_soft_prompt_;
 
-    LlamaDecoder<T>*         gpt_decoder_;
+    // LlamaDecoder<T>*         gpt_decoder_;
     LlamaContextDecoder<T>*  gpt_context_decoder_;
     // DynamicDecodeLayer<float>* dynamic_decode_layer_;
 
@@ -94,17 +94,17 @@ protected:
 
     // float* logits_buf_;
     // float* nccl_logits_buf_;
-    float* cum_log_probs_;
+    // float* cum_log_probs_;
 
-    bool*     finished_buf_;
+    // bool*     finished_buf_;
     // bool*     h_finished_buf_;
-    int*      sequence_lengths_          = nullptr;
+    // int*      sequence_lengths_          = nullptr;
     // int*      tiled_total_padding_count_ = nullptr;
-    uint32_t* seq_limit_len_             = nullptr;
+    // uint32_t* seq_limit_len_             = nullptr;
 
     T*   key_cache_;
     T*   value_cache_;
-    int* cache_indirections_[2] = {nullptr, nullptr};
+    // int* cache_indirections_[2] = {nullptr, nullptr};
 
     // prompt_learning weight_batch ptrs
     const T** prompt_learning_weight_batch_;
@@ -113,10 +113,10 @@ protected:
     int*  tiled_input_ids_buf_;
     int*  tiled_input_lengths_buf_;
     // int*  transposed_output_ids_buf_;
-    int*  output_ids_buf_;
+    // int*  output_ids_buf_;
     // int*  parent_ids_buf_;
-    int*  start_ids_buf_;
-    int*  end_ids_buf_;
+    // int*  start_ids_buf_;
+    // int*  end_ids_buf_;
     // bool* masked_tokens_ = nullptr;
 
     // bool* generation_should_stop_ = nullptr;
@@ -124,7 +124,7 @@ protected:
     T*     context_decoder_input_buf_;
     T*     context_decoder_output_buf_;
     T*     normed_context_decoder_output_buf_;
-    T*     lm_head_context_decoder_output_buf_;
+    // T*     lm_head_context_decoder_output_buf_;
     // float* output_log_probs_buf_;
 
     // function pointer callback
@@ -217,7 +217,7 @@ public:
     size_t getPipelineParallelSize();
     size_t getTensorParallelRank();
     size_t getTensorParallelSize();
-    bool*  getFinishBuffer();
+    // bool*  getFinishBuffer();
 
     void registerCallback(callback_sig* fn, void* ctx);
     void unRegisterCallback();

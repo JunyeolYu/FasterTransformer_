@@ -45,22 +45,22 @@ void Llama<T>::initialize()
                                                       custom_all_reduce_comm_,
                                                       enable_custom_all_reduce_);
 
-    gpt_decoder_ = new LlamaDecoder<T>(head_num_,
-                                       size_per_head_,
-                                       inter_size_,
-                                       num_layer_,
-                                       rotary_embedding_dim_,
-                                       neox_rotary_style_,
-                                       use_gptj_residual_,
-                                       layernorm_eps_,
-                                       tensor_para_,
-                                       pipeline_para_,
-                                       stream_,
-                                       cublas_wrapper_,
-                                       allocator_,
-                                       is_free_buffer_after_forward_,
-                                       custom_all_reduce_comm_,
-                                       enable_custom_all_reduce_);
+    // gpt_decoder_ = new LlamaDecoder<T>(head_num_,
+    //                                    size_per_head_,
+    //                                    inter_size_,
+    //                                    num_layer_,
+    //                                    rotary_embedding_dim_,
+    //                                    neox_rotary_style_,
+    //                                    use_gptj_residual_,
+    //                                    layernorm_eps_,
+    //                                    tensor_para_,
+    //                                    pipeline_para_,
+    //                                    stream_,
+    //                                    cublas_wrapper_,
+    //                                    allocator_,
+    //                                    is_free_buffer_after_forward_,
+    //                                    custom_all_reduce_comm_,
+    //                                    enable_custom_all_reduce_);
 
     // dynamic_decode_layer_ = new DynamicDecodeLayer<float>(vocab_size_,
     //                                                       vocab_size_padded_,
@@ -121,18 +121,18 @@ void Llama<T>::allocateBuffer(
     // logits_buf_ = (float*)(allocator_->reMalloc(logits_buf_, sizeof(float) * batchxbeam * vocab_size_padded_, false));
     // nccl_logits_buf_ =
     //     (float*)(allocator_->reMalloc(nccl_logits_buf_, sizeof(float) * batchxbeam * vocab_size_padded_, false));
-    cum_log_probs_    = (float*)(allocator_->reMalloc(cum_log_probs_, sizeof(float) * batchxbeam, false));
-    finished_buf_     = (bool*)(allocator_->reMalloc(finished_buf_, sizeof(bool) * batchxbeam, false));
+    // cum_log_probs_    = (float*)(allocator_->reMalloc(cum_log_probs_, sizeof(float) * batchxbeam, false));
+    // finished_buf_     = (bool*)(allocator_->reMalloc(finished_buf_, sizeof(bool) * batchxbeam, false));
     // h_finished_buf_   = new bool[batchxbeam];
-    sequence_lengths_ = (int*)(allocator_->reMalloc(sequence_lengths_, sizeof(int) * batchxbeam, false));
+    // sequence_lengths_ = (int*)(allocator_->reMalloc(sequence_lengths_, sizeof(int) * batchxbeam, false));
 
     key_cache_   = (T*)(allocator_->reMalloc(key_cache_, sizeof(T) * self_cache_size * 2, true));
     value_cache_ = key_cache_ + self_cache_size;
-    if (beam_width > 1) {
-        cache_indirections_[0] =
-            (int*)(allocator_->reMalloc(cache_indirections_[0], sizeof(int) * batchxbeam * max_seq_len * 2, true));
-        cache_indirections_[1] = cache_indirections_[0] + batchxbeam * max_seq_len;
-    }
+    // if (beam_width > 1) {
+    //     cache_indirections_[0] =
+    //         (int*)(allocator_->reMalloc(cache_indirections_[0], sizeof(int) * batchxbeam * max_seq_len * 2, true));
+    //     cache_indirections_[1] = cache_indirections_[0] + batchxbeam * max_seq_len;
+    // }
 
     // prompt_learning weight batch ptrs
     prompt_learning_weight_batch_ =
@@ -148,13 +148,13 @@ void Llama<T>::allocateBuffer(
 
     // transposed_output_ids_buf_ =
     //     (int*)(allocator_->reMalloc(transposed_output_ids_buf_, sizeof(int) * batchxbeam * max_seq_len, true));
-    output_ids_buf_ = (int*)(allocator_->reMalloc(output_ids_buf_, sizeof(int) * batchxbeam * max_seq_len, true));
+    // output_ids_buf_ = (int*)(allocator_->reMalloc(output_ids_buf_, sizeof(int) * batchxbeam * max_seq_len, true));
     // parent_ids_buf_ = (int*)(allocator_->reMalloc(parent_ids_buf_, sizeof(int) * batchxbeam * max_seq_len, true));
-    seq_limit_len_  = (uint32_t*)(allocator_->reMalloc(seq_limit_len_, sizeof(uint32_t) * batch_size, false));
+    // seq_limit_len_  = (uint32_t*)(allocator_->reMalloc(seq_limit_len_, sizeof(uint32_t) * batch_size, false));
     // masked_tokens_ = (bool*)(allocator_->reMalloc(masked_tokens_, sizeof(bool) * batchxbeam * max_cache_seq_len, true));
 
-    start_ids_buf_ = (int*)(allocator_->reMalloc(start_ids_buf_, sizeof(int) * batch_size, false));
-    end_ids_buf_   = (int*)(allocator_->reMalloc(end_ids_buf_, sizeof(int) * batch_size, false));
+    // start_ids_buf_ = (int*)(allocator_->reMalloc(start_ids_buf_, sizeof(int) * batch_size, false));
+    // end_ids_buf_   = (int*)(allocator_->reMalloc(end_ids_buf_, sizeof(int) * batch_size, false));
 
     context_decoder_input_buf_  = (T*)(allocator_->reMalloc(
         context_decoder_input_buf_, sizeof(T) * batchxbeam * max_input_len * hidden_units_, false));
@@ -162,8 +162,8 @@ void Llama<T>::allocateBuffer(
         context_decoder_output_buf_, sizeof(T) * batchxbeam * max_input_len * hidden_units_, false));
     normed_context_decoder_output_buf_ = (T*)(allocator_->reMalloc(
         normed_context_decoder_output_buf_, sizeof(T) * batchxbeam * max_input_len * hidden_units_, false));
-    lm_head_context_decoder_output_buf_ = (T*)(allocator_->reMalloc(
-        lm_head_context_decoder_output_buf_, sizeof(T) * vocab_size_padded_ * batchxbeam * max_input_len , false));
+    // lm_head_context_decoder_output_buf_ = (T*)(allocator_->reMalloc(
+    //     lm_head_context_decoder_output_buf_, sizeof(T) * vocab_size_padded_ * batchxbeam * max_input_len , false));
     // output_log_probs_buf_ =
     //     (float*)(allocator_->reMalloc(output_log_probs_buf_, sizeof(float) * batchxbeam * max_seq_len, false));
 
@@ -188,15 +188,15 @@ void Llama<T>::freeBuffer()
         // allocator_->free((void**)(&normed_decoder_output_buf_));
         // allocator_->free((void**)(&logits_buf_));
         // allocator_->free((void**)(&nccl_logits_buf_));
-        allocator_->free((void**)(&cum_log_probs_));
-        allocator_->free((void**)(&finished_buf_));
+        // allocator_->free((void**)(&cum_log_probs_));
+        // allocator_->free((void**)(&finished_buf_));
         // delete[] h_finished_buf_;
-        allocator_->free((void**)(&sequence_lengths_));
+        // allocator_->free((void**)(&sequence_lengths_));
 
         allocator_->free((void**)(&key_cache_));
-        if (cache_indirections_[0] != nullptr) {
-            allocator_->free((void**)(&cache_indirections_)[0]);
-        }
+        // if (cache_indirections_[0] != nullptr) {
+        //     allocator_->free((void**)(&cache_indirections_)[0]);
+        // }
 
         allocator_->free((void**)(&prompt_learning_weight_batch_));
         allocator_->free((void**)(&tiled_prompt_lengths_buf_));
@@ -206,18 +206,18 @@ void Llama<T>::freeBuffer()
         // allocator_->free((void**)(&tiled_total_padding_count_));
 
         // allocator_->free((void**)(&transposed_output_ids_buf_));
-        allocator_->free((void**)(&output_ids_buf_));
+        // allocator_->free((void**)(&output_ids_buf_));
         // allocator_->free((void**)(&parent_ids_buf_));
-        allocator_->free((void**)(&seq_limit_len_));
+        // allocator_->free((void**)(&seq_limit_len_));
         // allocator_->free((void**)(&masked_tokens_));
 
-        allocator_->free((void**)(&start_ids_buf_));
-        allocator_->free((void**)(&end_ids_buf_));
+        // allocator_->free((void**)(&start_ids_buf_));
+        // allocator_->free((void**)(&end_ids_buf_));
 
         allocator_->free((void**)(&context_decoder_input_buf_));
         allocator_->free((void**)(&context_decoder_output_buf_));
         allocator_->free((void**)(&normed_context_decoder_output_buf_));
-        allocator_->free((void**)(&lm_head_context_decoder_output_buf_));
+        // allocator_->free((void**)(&lm_head_context_decoder_output_buf_));
         // allocator_->free((void**)(&output_log_probs_buf_));
 
         // allocator_->free((void**)(&generation_should_stop_), true);
@@ -377,7 +377,7 @@ Llama<T>::Llama(Llama<T> const& gpt):
 template<typename T>
 Llama<T>::~Llama()
 {
-    delete gpt_decoder_;
+    // delete gpt_decoder_;
     // delete dynamic_decode_layer_;
     delete gpt_context_decoder_;
     freeBuffer();
@@ -455,7 +455,7 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
     FT_CHECK(input_tensors->find("output_seq_len") != input_tensors->end()
              && input_tensors->at("output_seq_len").shape.size() == 1);
     FT_CHECK(output_tensors->at("output_ids").shape.size() == 3);
-    FT_CHECK(output_tensors->at("sequence_length").shape.size() == 2);
+    // FT_CHECK(output_tensors->at("sequence_length").shape.size() == 2);
     FT_CHECK_WITH_INFO(input_tensors->at("input_ids").shape[0] == output_tensors->at("output_ids").shape[0],
                        "input_tensors->at(\"input_ids\").shape[0] == output_tensors->at(\"output_ids\").shape[0]");
 
@@ -558,14 +558,14 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
     const cudaDataType_t gemm_data_type = getCudaDataType<T>();
     allocateBuffer(
         batch_size, beam_width, max_seq_len, max_cache_seq_len, max_input_length + max_prefix_soft_prompt_length);
-    setSeqLimitLen(seq_limit_len_, input_tensors->at("output_seq_len"), limit_len_offset, batch_size);
+    // setSeqLimitLen(seq_limit_len_, input_tensors->at("output_seq_len"), limit_len_offset, batch_size);
 
     sync_check_cuda_error();
     {
-        TensorMap input_map(*input_tensors);
+        // TensorMap input_map(*input_tensors);
         // dynamic_decode_layer_->setup(batch_size, beam_width, &input_map);
-        handleOptArg(&input_map, "start_id", start_ids_buf_, start_id_, batch_size);
-        handleOptArg(&input_map, "end_id", end_ids_buf_, end_id_, batch_size);
+        // handleOptArg(&input_map, "start_id", start_ids_buf_, start_id_, batch_size);
+        // handleOptArg(&input_map, "end_id", end_ids_buf_, end_id_, batch_size);
     }
 
     const DataType data_type = getTensorType<T>();
@@ -583,13 +583,13 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                                                     size_per_head_};
 
     // initialize the output ids and parent ids
-    cudaMemsetAsync(output_ids_buf_, 0, sizeof(int) * batch_size * beam_width * max_seq_len, stream_);
+    // cudaMemsetAsync(output_ids_buf_, 0, sizeof(int) * batch_size * beam_width * max_seq_len, stream_);
     // cudaMemsetAsync(parent_ids_buf_, 0, sizeof(int) * batch_size * beam_width * max_seq_len, stream_);
     // cudaMemsetAsync(masked_tokens_, false, sizeof(bool) * batch_size * beam_width * max_cache_seq_len, stream_);
     // cudaMemsetAsync(tiled_total_padding_count_, 0, sizeof(int) * batch_size * beam_width, stream_);
-    if (beam_width > 1) {
-        cudaMemsetAsync(cache_indirections_[0], 0, 2 * sizeof(int) * batch_size * beam_width * max_seq_len, stream_);
-    }
+    // if (beam_width > 1) {
+    //     cudaMemsetAsync(cache_indirections_[0], 0, 2 * sizeof(int) * batch_size * beam_width * max_seq_len, stream_);
+    // }
 
     // Prefix prompts
     if (has_prefix_prompt_) {
@@ -619,31 +619,31 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                             stream_);
         sync_check_cuda_error();
 
-        if (has_prefix_soft_prompt_) {
-            inputIdsEmbeddingLookupPosEncodingSoftPromptParam<T> param;
-            param.from_tensor                   = context_decoder_input_buf_;
-            param.output_ids                    = output_ids_buf_;
-            param.input_lengths                 = tiled_input_lengths_buf_;
-            param.embedding_table               = gpt_weights->pre_decoder_embedding_table;
-            param.pos_table                     = gpt_weights->position_encoding_table;
-            param.prefix_soft_prompt_embedding  = input_tensors->at("request_prompt_embedding").getPtr<float>();
-            param.prefix_soft_prompt_lengths    = input_tensors->at("request_prompt_lengths").getPtr<int>();
-            param.input_ids                     = tiled_input_ids_buf_;
-            param.start_step                    = 1;
-            param.max_input_length              = max_input_length;
-            param.max_prefix_soft_prompt_length = max_prefix_soft_prompt_length;
-            param.batch_size                    = batch_size;
-            param.beam_width                    = beam_width;
-            param.hidden_units                  = hidden_units_;
-            param.stream                        = stream_;
+        // if (has_prefix_soft_prompt_) {
+        //     inputIdsEmbeddingLookupPosEncodingSoftPromptParam<T> param;
+        //     param.from_tensor                   = context_decoder_input_buf_;
+        //     param.output_ids                    = output_ids_buf_;
+        //     param.input_lengths                 = tiled_input_lengths_buf_;
+        //     param.embedding_table               = gpt_weights->pre_decoder_embedding_table;
+        //     param.pos_table                     = gpt_weights->position_encoding_table;
+        //     param.prefix_soft_prompt_embedding  = input_tensors->at("request_prompt_embedding").getPtr<float>();
+        //     param.prefix_soft_prompt_lengths    = input_tensors->at("request_prompt_lengths").getPtr<int>();
+        //     param.input_ids                     = tiled_input_ids_buf_;
+        //     param.start_step                    = 1;
+        //     param.max_input_length              = max_input_length;
+        //     param.max_prefix_soft_prompt_length = max_prefix_soft_prompt_length;
+        //     param.batch_size                    = batch_size;
+        //     param.beam_width                    = beam_width;
+        //     param.hidden_units                  = hidden_units_;
+        //     param.stream                        = stream_;
 
-            invokeInputIdsEmbeddingLookupPosEncodingSoftPrompt(param);
-            sync_check_cuda_error();
-            max_input_length += max_prefix_soft_prompt_length;  // view soft_prompt as input
-        }
-        else {
+        //     invokeInputIdsEmbeddingLookupPosEncodingSoftPrompt(param);
+        //     sync_check_cuda_error();
+        //     max_input_length += max_prefix_soft_prompt_length;  // view soft_prompt as input
+        // }
+        // else {
             invokeInputIdsEmbeddingLookupPosEncoding(context_decoder_input_buf_,
-                                                     output_ids_buf_,
+                                                     nullptr,
                                                      gpt_weights->pre_decoder_embedding_table,
                                                      gpt_weights->position_encoding_table,
                                                      pPromptTuningParam<T>{},  // no p/prompt tuning
@@ -655,7 +655,7 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                                                      hidden_units_,
                                                      stream_);
             sync_check_cuda_error();
-        }
+        // }
 
         invokeBuildDecoderAttentionMask(input_attention_mask_,
                                         tiled_input_lengths_buf_,
@@ -706,16 +706,16 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
         gpt_context_decoder_->forward(
             &decoder_output_tensors, &decoder_input_tensors, &gpt_weights->decoder_layer_weights);
         sync_check_cuda_error();
-        invokeDecodingInitialize(finished_buf_,
-                                 sequence_lengths_,
-                                 nullptr,
-                                 cum_log_probs_,
-                                 start_ids_buf_,
-                                 batch_size,
-                                 beam_width,
-                                 max_input_length - 1,
-                                 stream_);
-        sync_check_cuda_error();
+        // invokeDecodingInitialize(finished_buf_,
+        //                          sequence_lengths_,
+        //                          nullptr,
+        //                          cum_log_probs_,
+        //                          start_ids_buf_,
+        //                          batch_size,
+        //                          beam_width,
+        //                          max_input_length - 1,
+        //                          stream_);
+        // sync_check_cuda_error();
     }
     // else if (max_input_length == 0) {
     //     FT_CHECK(prompt_learning_type_ == PromptLearningType::no_prompt
@@ -816,7 +816,7 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                                 hidden_units_,  // k
                                 normed_context_decoder_output_buf_,
                                 hidden_units_,
-                                lm_head_context_decoder_output_buf_,
+                                output_tensors->at("logits_buf").getPtr<half>(),
                                 vocab_size_padded_
                                 );
         // Print tenser for debugging
@@ -1113,7 +1113,7 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
     //     }
     // }
 
-    setOutputTensors(output_tensors, input_tensors, max_input_length, max_output_seq_len);
+    // setOutputTensors(output_tensors, input_tensors, max_input_length, max_output_seq_len);
     
     // This is required for for the generation phase
     // sendTensorsToFirstPipelineNode(output_tensors, input_tensors);
@@ -1167,7 +1167,7 @@ void Llama<T>::setOutputTensors(std::unordered_map<std::string, Tensor>*       o
 
     const size_t batch_size       = output_tensors->at("output_ids").shape[0];
     const size_t beam_width       = output_tensors->at("output_ids").shape[1];
-    uint*        sequence_lengths = output_tensors->at("sequence_length").getPtr<uint>();
+    // uint*        sequence_lengths = output_tensors->at("sequence_length").getPtr<uint>();
     const size_t max_prefix_soft_prompt_length =
         has_prefix_soft_prompt_ ? input_tensors->at("request_prompt_embedding").shape[1] : 0;
 
@@ -1250,13 +1250,13 @@ void Llama<T>::setOutputTensors(std::unordered_map<std::string, Tensor>*       o
     // }
 
     // Return the logits_buf if requested.
-    if (output_tensors->count("logits_buf") > 0) {
-        Tensor test = output_tensors->at("logits_buf");
-        //batch_size * beam_width, max_input_length, vocab_size
-        FT_CHECK_WITH_INFO(test.size() == batch_size * beam_width * max_input_length * vocab_size_,
-                           "The shape of logits_buf does not match with batch_size * beam_width * max_input_length * vocab_size_");
-        cudaAutoCpy(test.getPtr<half>(), (half*)lm_head_context_decoder_output_buf_, test.size(), stream_);
-    }
+    // if (output_tensors->count("logits_buf") > 0) {
+    //     Tensor test = output_tensors->at("logits_buf");
+    //     //batch_size * beam_width, max_input_length, vocab_size
+    //     FT_CHECK_WITH_INFO(test.size() == batch_size * beam_width * max_input_length * vocab_size_,
+    //                        "The shape of logits_buf does not match with batch_size * beam_width * max_input_length * vocab_size_");
+    //     cudaAutoCpy(test.getPtr<half>(), (half*)lm_head_context_decoder_output_buf_, test.size(), stream_);
+    // }
 }
 
 template<typename T>
@@ -1283,11 +1283,11 @@ size_t Llama<T>::getTensorParallelSize()
     return tensor_para_.world_size_;
 }
 
-template<typename T>
-bool* Llama<T>::getFinishBuffer()
-{
-    return finished_buf_;
-}
+// template<typename T>
+// bool* Llama<T>::getFinishBuffer()
+// {
+//     return finished_buf_;
+// }
 
 template class Llama<float>;
 template class Llama<half>;
