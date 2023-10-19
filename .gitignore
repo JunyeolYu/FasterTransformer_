@@ -15,4 +15,6 @@ __pycache__/
 **/.ipynb_checkpoints/
 _deps/
 /3rdparty/NeMo/
-/3rdparty/apex/
+/3rdparty/apex
+*.nsys-rep
+*.sqlite
