@@ -594,18 +594,18 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
 
         // lm_head linear
         // Expected output tensor size is (bs, seq_len, vocab_size)
-        // cublas_wrapper_->Gemm(CUBLAS_OP_T,
-        //                         CUBLAS_OP_N,
-        //                         vocab_size_padded_,  // m = output row
-        //                         batch_size * beam_width * max_input_length, // n = output col
-        //                         hidden_units_,  // k = common dimension
-        //                         padded_embedding_kernel_ptr_,
-        //                         hidden_units_,  // k
-        //                         normed_context_decoder_output_buf_,
-        //                         hidden_units_,
-        //                         output_tensors->at("logits_buf").getPtr<half>(),
-        //                         vocab_size_padded_
-        //                         );
+        cublas_wrapper_->Gemm(CUBLAS_OP_T,
+                                CUBLAS_OP_N,
+                                vocab_size_padded_,  // m = output row
+                                batch_size * beam_width * max_input_length, // n = output col
+                                hidden_units_,  // k = common dimension
+                                padded_embedding_kernel_ptr_,
+                                hidden_units_,  // k
+                                normed_context_decoder_output_buf_,
+                                hidden_units_,
+                                output_tensors->at("logits_buf").getPtr<half>(),
+                                vocab_size_padded_
+                                );
         // Print tenser for debugging
         // for (int bs = 0; bs < batch_size; bs++) {
         //     for(int i = max_input_length-2; i<max_input_length; i++) {
