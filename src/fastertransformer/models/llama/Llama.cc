@@ -92,8 +92,8 @@ void Llama<T>::allocateBuffer(
     value_cache_ = key_cache_ + self_cache_size;
 
     // prompt_learning weight batch ptrs
-    prompt_learning_weight_batch_ =
-        (const T**)(allocator_->reMalloc(prompt_learning_weight_batch_, sizeof(T*) * batchxbeam, false));
+    // prompt_learning_weight_batch_ =
+    //     (const T**)(allocator_->reMalloc(prompt_learning_weight_batch_, sizeof(T*) * batchxbeam, false));
     tiled_prompt_lengths_buf_ =
         (int*)(allocator_->reMalloc(tiled_prompt_lengths_buf_, sizeof(int) * batchxbeam, false));
 
@@ -124,7 +124,7 @@ void Llama<T>::freeBuffer()
         allocator_->free((void**)(&decoder_input_buf_));
         allocator_->free((void**)(&decoder_output_buf_));
         allocator_->free((void**)(&key_cache_));
-        allocator_->free((void**)(&prompt_learning_weight_batch_));
+        // allocator_->free((void**)(&prompt_learning_weight_batch_));
         allocator_->free((void**)(&tiled_prompt_lengths_buf_));
         allocator_->free((void**)(&tiled_input_ids_buf_));
         allocator_->free((void**)(&tiled_input_lengths_buf_));
@@ -390,56 +390,56 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
     // Padding works as follows: p p x x i i i x x --> p p i i i x x x x (p denotes prompt, i denotes input, x denotes
     // pad)
     // TODO (perkzz): move unnecessary paddings
-    const int* prompt_learning_task_name_ids =
-        input_tensors->count("prompt_learning_task_name_ids") ?
-            input_tensors->at("prompt_learning_task_name_ids").getPtr<const int>() :
-            nullptr;
-    has_prefix_prompt_ =
-        (prompt_learning_task_name_ids != nullptr) && (prompt_learning_type_ == PromptLearningType::prefix_prompt);
-    int max_prefix_prompt_length = 0;
+    // const int* prompt_learning_task_name_ids =
+    //     input_tensors->count("prompt_learning_task_name_ids") ?
+    //         input_tensors->at("prompt_learning_task_name_ids").getPtr<const int>() :
+    //         nullptr;
+    // has_prefix_prompt_ =
+    //     (prompt_learning_task_name_ids != nullptr) && (prompt_learning_type_ == PromptLearningType::prefix_prompt);
+    // int max_prefix_prompt_length = 0;
 
-    FT_CHECK_WITH_INFO(
-        !(prompt_learning_task_name_ids != nullptr
-          && (prompt_learning_type_ == PromptLearningType::no_prompt
-              || prompt_learning_type_ == PromptLearningType::soft_prompt)),
-        "prompt_learning_type is prefix_prompt either p_prompt_tuning when prompt_learning_task_name_ids are provided.");
+    // FT_CHECK_WITH_INFO(
+    //     !(prompt_learning_task_name_ids != nullptr
+    //       && (prompt_learning_type_ == PromptLearningType::no_prompt
+    //           || prompt_learning_type_ == PromptLearningType::soft_prompt)),
+    //     "prompt_learning_type is prefix_prompt either p_prompt_tuning when prompt_learning_task_name_ids are provided.");
 
     // NOTE: Prefix Prompt PreProcessing
     // get prefix_prompt_weight for each batch --> shape [batch, beam_width]
     // --> ptrs with shape [num_layers, 2, num_heads, perfix_seq_len, size_per_head]
-    std::vector<const T*> prefix_prompt_weight_batch_ptrs;
-    std::vector<int>      prefix_prompt_lengths;
-    if (has_prefix_prompt_) {
-        for (int bs_id = 0; bs_id < batch_size; ++bs_id) {
-            int task_id = prompt_learning_task_name_ids[bs_id];
-            // throw errors when prompt task_name_ids are not found
-            std::pair<const T*, int> prefix_prompt_weight_length_pair;
-            try {
-                prefix_prompt_weight_length_pair = gpt_weights->prompt_learning_table.at(task_id);
-            }
-            catch (const std::out_of_range& oor) {
-                FT_LOG_ERROR("prefix_prompt_weights_lengths not found for prompt task id: " + task_id);
-                throw oor;
-            }
-            for (int bw_id = 0; bw_id < beam_width; ++bw_id) {
-                prefix_prompt_weight_batch_ptrs.push_back(prefix_prompt_weight_length_pair.first);
-                prefix_prompt_lengths.push_back(prefix_prompt_weight_length_pair.second);
-            }
-        }
+    // std::vector<const T*> prefix_prompt_weight_batch_ptrs;
+    // std::vector<int>      prefix_prompt_lengths;
+    // if (has_prefix_prompt_) {
+    //     for (int bs_id = 0; bs_id < batch_size; ++bs_id) {
+    //         int task_id = prompt_learning_task_name_ids[bs_id];
+    //         // throw errors when prompt task_name_ids are not found
+    //         std::pair<const T*, int> prefix_prompt_weight_length_pair;
+    //         try {
+    //             prefix_prompt_weight_length_pair = gpt_weights->prompt_learning_table.at(task_id);
+    //         }
+    //         catch (const std::out_of_range& oor) {
+    //             FT_LOG_ERROR("prefix_prompt_weights_lengths not found for prompt task id: " + task_id);
+    //             throw oor;
+    //         }
+    //         for (int bw_id = 0; bw_id < beam_width; ++bw_id) {
+    //             prefix_prompt_weight_batch_ptrs.push_back(prefix_prompt_weight_length_pair.first);
+    //             prefix_prompt_lengths.push_back(prefix_prompt_weight_length_pair.second);
+    //         }
+    //     }
 
-        max_prefix_prompt_length = *max_element(prefix_prompt_lengths.begin(), prefix_prompt_lengths.end());
+    //     max_prefix_prompt_length = *max_element(prefix_prompt_lengths.begin(), prefix_prompt_lengths.end());
 
-        FT_LOG_DEBUG("max_prefix_prompt_length: %d", max_prefix_prompt_length);
+    //     FT_LOG_DEBUG("max_prefix_prompt_length: %d", max_prefix_prompt_length);
 
-        if (max_prefix_prompt_length == 0) {
-            has_prefix_prompt_ = false;
-            FT_LOG_DEBUG("prompts are not applied !");
-        }
-    }
+    //     if (max_prefix_prompt_length == 0) {
+    //         has_prefix_prompt_ = false;
+    //         FT_LOG_DEBUG("prompts are not applied !");
+    //     }
+    // }
 
     int max_input_length = input_tensors->at("input_ids").shape[1];
-    FT_CHECK_WITH_INFO(!(max_input_length == 0 && max_prefix_prompt_length > 0),
-                       "Prefix Prompt should come with inputs!");
+    // FT_CHECK_WITH_INFO(!(max_input_length == 0 && max_prefix_prompt_length > 0),
+    //                    "Prefix Prompt should come with inputs!");
 
     // Prefix Soft Prompt
     has_prefix_soft_prompt_ = request_prompt_type == PromptLearningType::soft_prompt;
@@ -449,7 +449,7 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
     const size_t max_output_seq_len = input_tensors->at("output_seq_len").max<uint32_t>() + limit_len_offset;
     const size_t max_seq_len        = max_output_seq_len;
     // max cache seq len should include max prefix prompt length as it has k/v states
-    const size_t max_cache_seq_len = max_output_seq_len + max_prefix_prompt_length;
+    const size_t max_cache_seq_len = max_output_seq_len; /*max_prefix_prompt_length;*/
     if (max_cache_seq_len < max_seq_len) {
         FT_LOG_WARNING("max_cache_seq_len (%d) is less than max_seq_len (%d). "
                        "Note that this reduces the memory cost of k/v cache, but may hurt the accuracy.",
@@ -483,23 +483,23 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                                                     size_per_head_};
 
     // Prefix prompts
-    if (has_prefix_prompt_) {
-        cudaMemcpyAsync(prompt_learning_weight_batch_,
-                        prefix_prompt_weight_batch_ptrs.data(),
-                        sizeof(T*) * batch_size * beam_width,
-                        cudaMemcpyDefault,
-                        stream_);
-        cudaMemcpyAsync(tiled_prompt_lengths_buf_,
-                        prefix_prompt_lengths.data(),
-                        sizeof(int) * batch_size * beam_width,
-                        cudaMemcpyDefault,
-                        stream_);
-    }
+    // if (has_prefix_prompt_) {
+    //     cudaMemcpyAsync(prompt_learning_weight_batch_,
+    //                     prefix_prompt_weight_batch_ptrs.data(),
+    //                     sizeof(T*) * batch_size * beam_width,
+    //                     cudaMemcpyDefault,
+    //                     stream_);
+    //     cudaMemcpyAsync(tiled_prompt_lengths_buf_,
+    //                     prefix_prompt_lengths.data(),
+    //                     sizeof(int) * batch_size * beam_width,
+    //                     cudaMemcpyDefault,
+    //                     stream_);
+    // }
 
     sync_check_cuda_error();
 
     // handle first step
-    if (has_prefix_prompt_ || has_prefix_soft_prompt_ || max_input_length > 1) {
+    if (has_prefix_soft_prompt_ || max_input_length > 1) {
         invokeTileGptInputs(tiled_input_ids_buf_,
                             tiled_input_lengths_buf_,
                             input_tensors->at("input_ids").getPtr<int>(),
@@ -509,8 +509,9 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                             max_input_length,
                             stream_);
         sync_check_cuda_error();
-
-        invokeInputIdsEmbeddingLookupPosEncoding(context_decoder_input_buf_,
+        
+        if (pipeline_para_.rank_ == 0) {
+            invokeInputIdsEmbeddingLookupPosEncoding(context_decoder_input_buf_,
                                                     nullptr,
                                                     gpt_weights->pre_decoder_embedding_table,
                                                     gpt_weights->position_encoding_table,
@@ -522,14 +523,15 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                                                     batch_size * beam_width,
                                                     hidden_units_,
                                                     stream_);
-        sync_check_cuda_error();
+        }
+        // sync_check_cuda_error();
 
         invokeBuildDecoderAttentionMask(input_attention_mask_,
                                         tiled_input_lengths_buf_,
                                         tiled_prompt_lengths_buf_,
                                         batch_size * beam_width,
                                         max_input_length,
-                                        max_prefix_prompt_length,
+                                        0, //max_prefix_prompt_length,
                                         stream_);
         sync_check_cuda_error();
 
@@ -545,19 +547,19 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                     {batch_size * beam_width,
                      1,
                      (size_t)max_input_length,
-                     (size_t)(max_input_length + max_prefix_prompt_length)},
+                     (size_t)(max_input_length /*+ max_prefix_prompt_length*/)},
                     input_attention_mask_}},
             {"input_lengths", Tensor{MEMORY_GPU, TYPE_INT32, {batch_size * beam_width}, tiled_input_lengths_buf_}},
             {"d_prefix_prompt_batch",
              Tensor{MEMORY_GPU,
                     data_type,
                     {batch_size * beam_width},
-                    has_prefix_prompt_ ? prompt_learning_weight_batch_ : nullptr}},
+                    /* has_prefix_prompt_ ? prompt_learning_weight_batch_ : */nullptr}},
             {"d_prefix_prompt_lengths",
              Tensor{MEMORY_GPU,
                     TYPE_INT32,
                     {batch_size * beam_width},
-                    has_prefix_prompt_ ? tiled_prompt_lengths_buf_ : nullptr}}};
+                    /* has_prefix_prompt_ ? tiled_prompt_lengths_buf_ : */nullptr}}};
 
         std::unordered_map<std::string, Tensor> decoder_output_tensors{
             {"decoder_output",
@@ -574,12 +576,12 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
             &decoder_output_tensors, &decoder_input_tensors, &gpt_weights->decoder_layer_weights);
         sync_check_cuda_error();
     }
-
-    if (vocab_size_ == vocab_size_padded_) {
-        padded_embedding_kernel_ptr_ = gpt_weights->post_decoder_embedding.kernel;
-    }
    
     if (pipeline_para_.rank_ == pipeline_para_.world_size_ - 1) {
+        if (vocab_size_ == vocab_size_padded_) {
+            padded_embedding_kernel_ptr_ = gpt_weights->post_decoder_embedding.kernel;
+        }
+
         // LlamaRMSNorm()
         invokeGeneralT5LayerNorm(normed_context_decoder_output_buf_,   // output
                             context_decoder_output_buf_,               // input

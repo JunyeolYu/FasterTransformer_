@@ -92,7 +92,7 @@ protected:
     T*   value_cache_;
 
     // prompt_learning weight_batch ptrs
-    const T** prompt_learning_weight_batch_;
+    // const T** prompt_learning_weight_batch_;
     int*      tiled_prompt_lengths_buf_;  // only needed by prefix prompts
 
     int*  tiled_input_ids_buf_;

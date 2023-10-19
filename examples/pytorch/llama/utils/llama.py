@@ -126,8 +126,8 @@ class LlamaWeights(object):
         def is_load(i):
             return i >= self.layers_per_device * pipeline_para_rank and i < self.layers_per_device * (pipeline_para_rank + 1)
 
-        print("\n\n========== LOAD ==========")
-        print(f"tensor {tensor_para_rank}, pipeline {pipeline_para_rank}")
+        print("========== LOAD ==========")
+        print(f"   tensor {tensor_para_rank}, pipeline {pipeline_para_rank}")
         print("==========================")
 
         file_names = [
@@ -156,11 +156,20 @@ class LlamaWeights(object):
                 else:
                     w.append(torch.empty(0).to(self.inference_data_type))
 
-        w.append(torch.from_numpy(np.fromfile(ckpt_path + "/model.wte.weight.bin", dtype=self.weights_data_type)).to(self.inference_data_type))
-        w.append(torch.zeros(self.global_hidden_units, dtype=self.inference_data_type))                                     
-        w.append(torch.from_numpy(np.fromfile(ckpt_path + "/model.final_layernorm.weight.bin", dtype=self.weights_data_type)).to(self.inference_data_type))
-        w.append(torch.from_numpy(np.fromfile(ckpt_path + "/model.lm_head.weight.bin", dtype=self.weights_data_type)).to(self.inference_data_type))
-
+        if pipeline_para_rank==0:  
+            w.append(torch.from_numpy(np.fromfile(ckpt_path + "/model.wte.weight.bin", dtype=self.weights_data_type)).to(self.inference_data_type))
+        else:
+            w.append(torch.empty(0).to(self.inference_data_type))
+            
+        w.append(torch.zeros(self.global_hidden_units, dtype=self.inference_data_type))              
+        
+        if pipeline_para_rank==3:                        
+            w.append(torch.from_numpy(np.fromfile(ckpt_path + "/model.final_layernorm.weight.bin", dtype=self.weights_data_type)).to(self.inference_data_type))
+            w.append(torch.from_numpy(np.fromfile(ckpt_path + "/model.lm_head.weight.bin", dtype=self.weights_data_type)).to(self.inference_data_type))
+        else:
+            w.append(torch.empty(0).to(self.inference_data_type))
+            w.append(torch.empty(0).to(self.inference_data_type))
+        
         total = len(w) - 4 # For non-transformer layers
         try:
             # For transformer layers
@@ -173,8 +182,11 @@ class LlamaWeights(object):
             
             # For non-transformer layers
             for i in range(total,len(w)):
-                self.w[i] = w[i].reshape(self.w[i].shape)
-                
+                if w[i].nelement() > 0:
+                    self.w[i] = w[i].reshape(self.w[i].shape)
+                elif not is_load(layer):
+                    self.w[i] = w[i]
+                    
         except RuntimeError:
             raise RuntimeError(
                 f"head_num, size_per_head, vocab_size, and max_seq_len must be the same as the ones during training "

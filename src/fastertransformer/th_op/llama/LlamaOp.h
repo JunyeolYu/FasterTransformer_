@@ -119,7 +119,7 @@ public:
         }
 
         Llama_weights_.pre_decoder_embedding_table   = get_ptr<T>(weights_[14 * layer_num_ + 0]);
-        Llama_weights_.post_decoder_layernorm.beta   = get_ptr<T>(weights_[14 * layer_num_ + 1]);
+        // Llama_weights_.post_decoder_layernorm.beta   = get_ptr<T>(weights_[14 * layer_num_ + 1]);
         Llama_weights_.post_decoder_layernorm.gamma  = get_ptr<T>(weights_[14 * layer_num_ + 2]);
         Llama_weights_.post_decoder_embedding.kernel = get_ptr<T>(weights_[14 * layer_num_ + 3]);
 
