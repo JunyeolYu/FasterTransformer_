@@ -70,9 +70,7 @@ private:
     bool               has_prefix_prompt_;
     bool               has_prefix_soft_prompt_;
 
-    // LlamaDecoder<T>*         gpt_decoder_;
     LlamaContextDecoder<T>*  gpt_context_decoder_;
-    // DynamicDecodeLayer<float>* dynamic_decode_layer_;
 
     void allocateBuffer() override;
     void allocateBuffer(
@@ -83,28 +81,15 @@ private:
 
 protected:
     T*       padded_embedding_kernel_;
-    // T*       padded_embedding_bias_;
     const T* padded_embedding_kernel_ptr_;
 
     T* input_attention_mask_;
 
     T* decoder_input_buf_;
     T* decoder_output_buf_;
-    // T* normed_decoder_output_buf_;
-
-    // float* logits_buf_;
-    // float* nccl_logits_buf_;
-    // float* cum_log_probs_;
-
-    // bool*     finished_buf_;
-    // bool*     h_finished_buf_;
-    // int*      sequence_lengths_          = nullptr;
-    // int*      tiled_total_padding_count_ = nullptr;
-    // uint32_t* seq_limit_len_             = nullptr;
 
     T*   key_cache_;
     T*   value_cache_;
-    // int* cache_indirections_[2] = {nullptr, nullptr};
 
     // prompt_learning weight_batch ptrs
     const T** prompt_learning_weight_batch_;
@@ -112,20 +97,10 @@ protected:
 
     int*  tiled_input_ids_buf_;
     int*  tiled_input_lengths_buf_;
-    // int*  transposed_output_ids_buf_;
-    // int*  output_ids_buf_;
-    // int*  parent_ids_buf_;
-    // int*  start_ids_buf_;
-    // int*  end_ids_buf_;
-    // bool* masked_tokens_ = nullptr;
-
-    // bool* generation_should_stop_ = nullptr;
 
     T*     context_decoder_input_buf_;
     T*     context_decoder_output_buf_;
     T*     normed_context_decoder_output_buf_;
-    // T*     lm_head_context_decoder_output_buf_;
-    // float* output_log_probs_buf_;
 
     // function pointer callback
     using callback_sig                 = void(std::unordered_map<std::string, Tensor>*, void*);
@@ -135,10 +110,6 @@ protected:
     // callback step
     size_t token_generated_cb_step_ = 5; // default 5, override by env LLAMA_STREAM_CB_STEP
 
-    void setOutputTensors(std::unordered_map<std::string, Tensor>*       output_tensors,
-                          const std::unordered_map<std::string, Tensor>* input_tensors,
-                          const size_t                                   max_input_length,
-                          const size_t                                   max_seq_len);
     void sendTensorsToFirstPipelineNode(std::unordered_map<std::string, Tensor>*       output_tensors,
                                         const std::unordered_map<std::string, Tensor>* input_tensors);
 
@@ -217,7 +188,6 @@ public:
     size_t getPipelineParallelSize();
     size_t getTensorParallelRank();
     size_t getTensorParallelSize();
-    // bool*  getFinishBuffer();
 
     void registerCallback(callback_sig* fn, void* ctx);
     void unRegisterCallback();
