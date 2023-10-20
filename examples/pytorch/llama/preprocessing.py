@@ -19,6 +19,8 @@ done = 0
 def load_hellaswag():
     hellaswag = datasets.load_dataset('hellaswag')
     validation_zeroshot = hellaswag['validation']
+    # validation = hellaswag['validation']
+    # validation_zeroshot = validation.filter(lambda example: example['split_type'] == 'zeroshot')
     #print("Hellaswag dataset load finish , len: " + str(len(validation_zeroshot)))
     return validation_zeroshot
 
@@ -108,13 +110,13 @@ def engineering_dataset(validation_zeroshot, tokenizer):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--tokenizer_path', type=str, default="/llm/model/30B_converted_hf", 
+    parser.add_argument('--tokenizer_path', type=str, default="/model/llama-30b/", 
                         help='directory where the tokenizer file is located.')
     args = parser.parse_args()
     tokenizer_path = args.tokenizer_path
 
     # sentencepiece needed
-    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=False)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=True, legacy=False)
 
     # PGJ : For Hellaswag
     start_dataset = time.time()
