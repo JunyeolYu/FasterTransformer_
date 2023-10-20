@@ -15,6 +15,9 @@ It aims to efficiently perform LLaMA-30B model inference using Fastertransformer
 - Modified to prevent unnecessary invocation of some of the existing implementations that are not related to performing the target sequence classification task
 - Modified to prevent unnecessary loading of layer weights on each GPU
 - Adjusting dataset for efficient inference
+- Overlapping model loading process with data preprocessing process *** Update during 2nd round ***
+- Removing unnecessary buffer used and key-value cache, existed in original FasterTransformer *** Update during 2nd round ***
+- Adjusting batch size with more bins (more suitable, fine-grained) *** Update during 2nd round ***
 
 ## Setup
 In a container with `pytorch-23.05-py3` image,
@@ -27,10 +30,11 @@ python ./examples/cpp/llama/huggingface_llama_convert.py -saved_dir=./models/lla
 ```
 #### Build
 ```bash
-cd /ft_workspace/FasterTransformer
+cd /workspace/FasterTransformer_
 mkdir build && cd build
 git submodule init && git submodule update
-pip3 install fire jax jaxlib transformers datasets sentencepiece
+pip3 install fire jax jaxlib transformers datasets sentencepiece numpysocket
+apt-get install bc
 
 CUDAFLAGS="-include stdio.h" cmake -DSM=70 -DCMAKE_BUILD_TYPE=Release -DBUILD_PYT=ON -DBUILD_MULTI_GPU=ON -D PYTHON_PATH=/usr/bin/python3 ..
 make -j$(nproc)
@@ -38,6 +42,8 @@ make -j$(nproc)
 
 ## Inference
 ```bash
-cd /ft_workspace/FasterTransformer/examples/pytorch/llama
-mpirun -n 4 --allow-run-as-root python llama_example.py --output_len 1 --pipeline_para_size 4 --ckpt_path $CKPT_PATH --tokenizer_path $TOKENIZER_PATH --lib_path $LIB_PATH
+export $CKPT_PATH="" && export $TOKENIZER_PATH="" && export $LIB_PATH=""
+cd /workspace/FasterTransformer_/examples/pytorch/llama
+
+chmod 777 exec_evaluation.sh && bash exec_evaluation.sh
 ```
