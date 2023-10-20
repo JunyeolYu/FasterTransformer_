@@ -78,7 +78,7 @@ def cpu_job(q, start_value, acc, nacc):
         if not q.empty():
             try:
                 req_no = q.get_nowait()
-                req_no = pickle.loads(req_no)
+                # req_no = pickle.loads(req_no)
 
             except:
                 continue
