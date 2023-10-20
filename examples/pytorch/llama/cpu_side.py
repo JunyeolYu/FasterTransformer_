@@ -64,13 +64,11 @@ def cpu_job(q, start_value, acc, nacc):
     import pickle
     from multiprocessing import Process, Queue, Value
 
-    torch.set_num_threads(26)
-
-
     output_model = torch.load("/llm/ft_models/llama_30b_pp/4-gpu/output_layer.pt")
     output_model = output_model.cpu()
-    output_model.to(torch.float32 )
+    output_model.to(torch.float32)
     output_model.eval()
+    torch.set_num_threads(26)
 
 
     res = []
@@ -78,7 +76,7 @@ def cpu_job(q, start_value, acc, nacc):
         if not q.empty():
             try:
                 req_no = q.get_nowait()
-                # req_no = pickle.loads(req_no)
+                #req_no = pickle.loads(req_no)
 
             except:
                 continue
@@ -88,6 +86,7 @@ def cpu_job(q, start_value, acc, nacc):
             output_log_probs = output_log_probs.to(torch.float32).cpu()
 
             multi_logits = torch.nn.functional.log_softmax(output_model(output_log_probs), dim=-1)
+            
             _res = []
             for logits, prompt in zip(multi_logits, prompts):
                 _input, ending, el = prompt[1]-1, prompt[4], prompt[-1]

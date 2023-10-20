@@ -15,14 +15,13 @@
 
 # from __future__ import print_function
 
-from torch.nn.utils.rnn import pad_sequence
+
 import os
 import sys
 import argparse
 import configparser
 import timeit
-import torch
-import torch.distributed as dist
+
 from transformers import AutoTokenizer, LlamaTokenizer
 import datasets
 import re
@@ -32,6 +31,12 @@ import pickle
 from multiprocessing import Process, Queue, Value
 
 from cpu_side import cpu_job
+import torch.distributed as dist
+from torch.nn.utils.rnn import pad_sequence
+import torch
+
+print("TORCH VERSION IS {}".format(torch.__version__))
+
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(dir_path + "/../../..")
@@ -234,6 +239,8 @@ def main():
 
 
 
+
+
     # sentencepiece needed
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_path, use_fast=True, legacy=False)
 
@@ -302,7 +309,10 @@ def main():
 
     if rank == 3:
         start_value.value = 0
+        start_time = time.time()
         cpu_process.join()
+        end_time = time.time()
+        print("CPU Process Time: {}".format(end_time-start_time))
         print("Accuracy Value: {}".format(acc.value))
         print("Normalized Accuracy Value: {}".format(nacc.value))
 
