@@ -15,9 +15,9 @@ It aims to efficiently perform LLaMA-30B model inference using Fastertransformer
 - Modified to prevent unnecessary invocation of some of the existing implementations that are not related to performing the target sequence classification task
 - Modified to prevent unnecessary loading of layer weights on each GPU
 - Adjusting dataset for efficient inference
-- Overlapping model loading process with data preprocessing process *** Update during 2nd round ***
-- Removing unnecessary buffer used and key-value cache, existed in original FasterTransformer *** Update during 2nd round ***
-- Adjusting batch size with more bins (more suitable, fine-grained) *** Update during 2nd round ***
+- Overlapping model loading process with data preprocessing process ***Update during 2nd round***
+- Removing unnecessary buffer used and key-value cache, existed in original FasterTransformer ***Update during 2nd round***
+- Adjusting batch size with more bins (more suitable, fine-grained) ***Update during 2nd round***
 
 ## Setup
 In a container with `pytorch-23.05-py3` image,
