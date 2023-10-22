@@ -71,41 +71,33 @@ def engineering_dataset(validation_zeroshot, tokenizer):
         temp = RequestInstance(i, row['activity_label'], row['ctx'], row['endings'], tokenizer, int(row['label']))
         requests.extend(temp.requests)
 
+    # requests = requests[:4000]
     requests = sorted(requests, key=lambda x: x[1] + x[-1], reverse=True)
 
-    max_tokens_40 = []
-    max_tokens_80 = []
-    max_tokens_120 = []
-    max_tokens_170 = []
+    seq_ = [40,60,80,130,170]
+    max_tokens_ = [[] for i in range(len(seq_))]
 
     for r in requests:
-        ttt = r[1] + len(r[4])
-        if ttt <= 40:
-            max_tokens_40.append(r)
-        elif ttt <= 80:
-            max_tokens_80.append(r)
-        elif ttt <= 120:
-            max_tokens_120.append(r)
-        elif ttt <= 170:
-            max_tokens_170.append(r)
+        ttt = r[1] + len(r[4]) -1
+        idx = 0
+        for i,s in enumerate(seq_):
+            if ttt<=s:
+                idx = i
+                break
+        max_tokens_[idx].append(r)
 
-    max_batch_sizes_config = [248, 126, 69, 60][::-1] # FT 우리가 수정한 기본 버전으로 돌렸을 때 max [496, 252, 138, 120]
-
+    max_batch_sizes_config = [250, 170, 126, 78, 60]
+    # max_batch_sizes_config = [248, 128, 84, 60] # FT 우리가 수정한 기본 버전으로 돌렸을 때 max [496, 252, 138, 120]
+    
     final_reqs = []
     
-    for i in range(len(max_batch_sizes_config)):
-        current_list = []
-        if i == 3:
-            current_list = max_tokens_40
-        elif i == 2:
-            current_list = max_tokens_80
-        elif i == 1:
-            current_list = max_tokens_120
-        elif i == 0:
-            current_list = max_tokens_170
-
-        for j in range(0, len(current_list), max_batch_sizes_config[i]):
-            final_reqs.append(current_list[j:j+max_batch_sizes_config[i]])
+    for i, b in enumerate(max_batch_sizes_config):
+        current_list = max_tokens_[i]
+        print(seq_[i], current_list[0][1] + len(current_list[0][4]) -1,  current_list[-1][1] + len(current_list[-1][4]) -1)
+        for j in range(0, len(current_list), b):
+            final_reqs.append(current_list[j:j+b])
+        print(f"seq:{seq_[i]}, req:{len(current_list)}, bs:{b}, # of batches:{len(current_list)/b}")
+        
     return final_reqs
 
 def main():

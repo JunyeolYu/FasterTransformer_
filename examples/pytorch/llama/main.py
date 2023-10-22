@@ -224,15 +224,17 @@ def main():
                 return_cum_log_probs=0)
 
             if(rank == 3):
-                multi_logits = torch.nn.functional.log_softmax(output_log_probs, dim=-1)
+                min_tok = min([prompt[1]-1 for prompt in prompts])
+                multi_logits = torch.nn.functional.log_softmax(output_log_probs[:,min_tok:,:], dim=-1)
                 
                 _res = []
                 for logits, prompt in zip(multi_logits, prompts):
-                    _input, ending, el = prompt[1]-1, prompt[4], prompt[-1]
-                    logits = logits[_input:_input+el].unsqueeze(0)  # [1, seq, vocab]
-                    ending = torch.tensor(ending, dtype=torch.long, device='cuda').view(1,-1,1)
-                    answer = torch.gather(logits, 2, ending).squeeze(-1).sum()  # [1, ]
+                    _input = prompt[1] -1 - min_tok 
+                    logits = logits[_input:_input+prompt[-1]]  # [1, seq, vocab]
+                    ending = torch.tensor(prompt[4], dtype=torch.long, device='cuda').view(-1,1)
+                    answer = torch.gather(logits, 1, ending).sum().cuda()  # [1, ]
                     _res.append(answer)
+                # temp = []
                 for prompt, ans in zip(prompts, _res):
                     prompt[3] = ans
             if(rank == 3):
