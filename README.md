@@ -9,7 +9,7 @@ It aims to efficiently perform LLaMA-30B model inference using Fastertransformer
 ## Features
 - Supporting for FP-16 LLaMA-30B inference with PyTorch framework based on [this branch](https://github.com/vitrun/FasterTransformer/tree/llama_torch)
 - Supporting pipeline parallelism for the target model
-- Suited for Hellaswag task (zero-shot, sequence classification)
+- Suited for Hellaswag task (sequence classification)
 - Removed auto-regressive decode (generation) module
 - Calculating prediction class from prefill module's output
 - Modified to prevent unnecessary invocation of some of the existing implementations that are not related to performing the target sequence classification task
