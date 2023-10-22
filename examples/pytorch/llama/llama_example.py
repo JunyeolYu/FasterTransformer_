@@ -75,10 +75,22 @@ def engineering_dataset(validation_zeroshot, tokenizer):
         temp = RequestInstance(i, row['activity_label'], row['ctx'], row['endings'], tokenizer, int(row['label']))
         requests.extend(temp.requests)
 
-    # requests = requests[:4000]
+    requests = requests[:4000]
     requests = sorted(requests, key=lambda x: x[1] + x[-1], reverse=True)
 
+    max_tokens_20 = []
+
     max_tokens_40 = []
+
+    max_tokens_60 = []
+
+    max_tokens_80 = []
+
+    max_tokens_100 = []
+
+    max_tokens_20 = []
+
+    max_tokens_20 = []
     max_tokens_80 = []
     max_tokens_120 = []
     max_tokens_170 = []
