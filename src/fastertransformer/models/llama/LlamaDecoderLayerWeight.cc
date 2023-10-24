@@ -73,24 +73,24 @@ LlamaDecoderLayerWeight<T>::LlamaDecoderLayerWeight(const LlamaDecoderLayerWeigh
     use_gptj_residual_(other.use_gptj_residual_)
 {
     mallocWeights();
-    cudaD2Dcpy(weights_ptr[0], other.weights_ptr[0], hidden_units_);
+    // cudaD2Dcpy(weights_ptr[0], other.weights_ptr[0], hidden_units_);
     cudaD2Dcpy(weights_ptr[1], other.weights_ptr[1], hidden_units_);
     cudaD2Dcpy(weights_ptr[2], other.weights_ptr[2], hidden_units_ * 3 * hidden_units_ / tensor_para_size_);
-    cudaD2Dcpy(weights_ptr[3], other.weights_ptr[3], 3 * hidden_units_ / tensor_para_size_);
+    // cudaD2Dcpy(weights_ptr[3], other.weights_ptr[3], 3 * hidden_units_ / tensor_para_size_);
     cudaD2Dcpy(weights_ptr[4], other.weights_ptr[4], hidden_units_ / tensor_para_size_ * hidden_units_);
     if (!use_gptj_residual_) {
-        cudaD2Dcpy(weights_ptr[5], other.weights_ptr[5], hidden_units_);
+        // cudaD2Dcpy(weights_ptr[5], other.weights_ptr[5], hidden_units_);
     }
 
     cudaD2Dcpy(weights_ptr[6], other.weights_ptr[6], hidden_units_ * inter_size_ / tensor_para_size_);
-    cudaD2Dcpy(weights_ptr[7], other.weights_ptr[7], inter_size_ / tensor_para_size_);
+    // cudaD2Dcpy(weights_ptr[7], other.weights_ptr[7], inter_size_ / tensor_para_size_);
 
     cudaD2Dcpy(weights_ptr[8], other.weights_ptr[8], hidden_units_ * inter_size_ / tensor_para_size_);
-    cudaD2Dcpy(weights_ptr[9], other.weights_ptr[9], inter_size_ / tensor_para_size_);
+    // cudaD2Dcpy(weights_ptr[9], other.weights_ptr[9], inter_size_ / tensor_para_size_);
 
     cudaD2Dcpy(weights_ptr[10], other.weights_ptr[10], inter_size_ / tensor_para_size_ * hidden_units_);
-    cudaD2Dcpy(weights_ptr[11], other.weights_ptr[11], hidden_units_);
-    cudaD2Dcpy(weights_ptr[12], other.weights_ptr[12], hidden_units_);
+    // cudaD2Dcpy(weights_ptr[11], other.weights_ptr[11], hidden_units_);
+    // cudaD2Dcpy(weights_ptr[12], other.weights_ptr[12], hidden_units_);
     cudaD2Dcpy(weights_ptr[13], other.weights_ptr[13], hidden_units_);
     setWeightPtr();
 }
@@ -106,21 +106,21 @@ LlamaDecoderLayerWeight<T>& LlamaDecoderLayerWeight<T>::operator=(const LlamaDec
 
     mallocWeights();
 
-    cudaD2Dcpy(weights_ptr[0], other.weights_ptr[0], hidden_units_);
+    // cudaD2Dcpy(weights_ptr[0], other.weights_ptr[0], hidden_units_);
     cudaD2Dcpy(weights_ptr[1], other.weights_ptr[1], hidden_units_);
     cudaD2Dcpy(weights_ptr[2], other.weights_ptr[2], hidden_units_ * 3 * hidden_units_ / tensor_para_size_);
-    cudaD2Dcpy(weights_ptr[3], other.weights_ptr[3], 3 * hidden_units_ / tensor_para_size_);
+    // cudaD2Dcpy(weights_ptr[3], other.weights_ptr[3], 3 * hidden_units_ / tensor_para_size_);
     cudaD2Dcpy(weights_ptr[4], other.weights_ptr[4], hidden_units_ / tensor_para_size_ * hidden_units_);
     if (!use_gptj_residual_) {
-        cudaD2Dcpy(weights_ptr[5], other.weights_ptr[5], hidden_units_);
+        // cudaD2Dcpy(weights_ptr[5], other.weights_ptr[5], hidden_units_);
     }
     cudaD2Dcpy(weights_ptr[6], other.weights_ptr[6], hidden_units_ * inter_size_ / tensor_para_size_);
-    cudaD2Dcpy(weights_ptr[7], other.weights_ptr[7], inter_size_ / tensor_para_size_);
+    // cudaD2Dcpy(weights_ptr[7], other.weights_ptr[7], inter_size_ / tensor_para_size_);
     cudaD2Dcpy(weights_ptr[8], other.weights_ptr[8], hidden_units_ * inter_size_ / tensor_para_size_);
-    cudaD2Dcpy(weights_ptr[9], other.weights_ptr[9], inter_size_ / tensor_para_size_);
+    // cudaD2Dcpy(weights_ptr[9], other.weights_ptr[9], inter_size_ / tensor_para_size_);
     cudaD2Dcpy(weights_ptr[10], other.weights_ptr[10], inter_size_ / tensor_para_size_ * hidden_units_);
-    cudaD2Dcpy(weights_ptr[11], other.weights_ptr[11], hidden_units_);
-    cudaD2Dcpy(weights_ptr[12], other.weights_ptr[12], hidden_units_);
+    // cudaD2Dcpy(weights_ptr[11], other.weights_ptr[11], hidden_units_);
+    // cudaD2Dcpy(weights_ptr[12], other.weights_ptr[12], hidden_units_);
     cudaD2Dcpy(weights_ptr[13], other.weights_ptr[13], hidden_units_);
     setWeightPtr();
     return *this;
@@ -178,21 +178,21 @@ void LlamaDecoderLayerWeight<T>::loadModel(std::string dir_path, FtCudaDataType 
 template<typename T>
 void LlamaDecoderLayerWeight<T>::setWeightPtr()
 {
-    pre_layernorm_weights.beta                            = weights_ptr[0];
+    // pre_layernorm_weights.beta                            = weights_ptr[0];
     pre_layernorm_weights.gamma                           = weights_ptr[1];
     self_attention_weights.query_weight.kernel            = weights_ptr[2];
-    self_attention_weights.query_weight.bias              = weights_ptr[3];
+    // self_attention_weights.query_weight.bias              = weights_ptr[3];
     self_attention_weights.attention_output_weight.kernel = weights_ptr[4];
-    self_attention_weights.attention_output_weight.bias   = use_gptj_residual_ ? nullptr : weights_ptr[5];
+    // self_attention_weights.attention_output_weight.bias   = use_gptj_residual_ ? nullptr : weights_ptr[5];
 
     ffn_weights.intermediate_weight.kernel  = weights_ptr[6];
-    ffn_weights.intermediate_weight.bias    = weights_ptr[7];
+    // ffn_weights.intermediate_weight.bias    = weights_ptr[7];
     ffn_weights.intermediate_weight2.kernel = weights_ptr[8];
-    ffn_weights.intermediate_weight2.bias   = weights_ptr[9];
+    // ffn_weights.intermediate_weight2.bias   = weights_ptr[9];
     ffn_weights.output_weight.kernel        = weights_ptr[10];
-    ffn_weights.output_weight.bias          = weights_ptr[11];
+    // ffn_weights.output_weight.bias          = weights_ptr[11];
 
-    post_attention_layernorm_weights.beta  = weights_ptr[12];
+    // post_attention_layernorm_weights.beta  = weights_ptr[12];
     post_attention_layernorm_weights.gamma = weights_ptr[13];
     is_maintain_buffer                     = true;
 }
@@ -200,22 +200,22 @@ void LlamaDecoderLayerWeight<T>::setWeightPtr()
 template<typename T>
 void LlamaDecoderLayerWeight<T>::mallocWeights()
 {
-    deviceMalloc(&weights_ptr[0], hidden_units_); // pre layernorm beta
+    // deviceMalloc(&weights_ptr[0], hidden_units_); // pre layernorm beta
     deviceMalloc(&weights_ptr[1], hidden_units_); // pre layernorm gamma
     deviceMalloc(&weights_ptr[2], hidden_units_ * 3 * hidden_units_ / tensor_para_size_); // qkv kernel
-    deviceMalloc(&weights_ptr[3], 3 * hidden_units_ / tensor_para_size_); // qkv bias
+    // deviceMalloc(&weights_ptr[3], 3 * hidden_units_ / tensor_para_size_); // qkv bias
     deviceMalloc(&weights_ptr[4], hidden_units_ / tensor_para_size_ * hidden_units_); // attention output weight
     if (!use_gptj_residual_) {
-        deviceMalloc(&weights_ptr[5], hidden_units_); // attention output bias
+        // deviceMalloc(&weights_ptr[5], hidden_units_); // attention output bias
     }
 
     deviceMalloc(&weights_ptr[6], hidden_units_ * inter_size_ / tensor_para_size_); // intermediate_weight kernel
-    deviceMalloc(&weights_ptr[7], inter_size_ / tensor_para_size_);                 // intermediate_weight bias
+    // deviceMalloc(&weights_ptr[7], inter_size_ / tensor_para_size_);                 // intermediate_weight bias
     deviceMalloc(&weights_ptr[8], hidden_units_ * inter_size_ / tensor_para_size_); // intermediate_weight2 kernel
-    deviceMalloc(&weights_ptr[9], inter_size_ / tensor_para_size_);                 // intermediate_weight2 bias
+    // deviceMalloc(&weights_ptr[9], inter_size_ / tensor_para_size_);                 // intermediate_weight2 bias
     deviceMalloc(&weights_ptr[10], inter_size_ / tensor_para_size_ * hidden_units_); // output_weight kernel
-    deviceMalloc(&weights_ptr[11], hidden_units_);                                   // output_weight bias
-    deviceMalloc(&weights_ptr[12], hidden_units_); // post attn layernorm beta
+    // deviceMalloc(&weights_ptr[11], hidden_units_);                                   // output_weight bias
+    // deviceMalloc(&weights_ptr[12], hidden_units_); // post attn layernorm beta
     deviceMalloc(&weights_ptr[13], hidden_units_); // post attn layernorm gamma
 }
 

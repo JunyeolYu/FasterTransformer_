@@ -347,7 +347,7 @@ void GptContextAttentionLayer<T>::forward(TensorMap*                output_tenso
 #endif
         }
         else {
-            if (int8_mode_ == 1) {
+            /*if (int8_mode_ == 1) {
                 FT_CHECK(weight_only_int8_fc_runner_.get() != NULL
                          && attention_weights->attention_output_weight.int8_kernel != NULL
                          && attention_weights->attention_output_weight.weight_only_quant_scale != NULL);
@@ -378,7 +378,7 @@ void GptContextAttentionLayer<T>::forward(TensorMap*                output_tenso
                                       0,
                                       stream_);
             }
-            else {
+            else */{
                 cublas_wrapper_->Gemm(CUBLAS_OP_N,
                                       CUBLAS_OP_N,
                                       hidden_units_,

@@ -394,7 +394,7 @@ void LlamaContextDecoder<T>::forward(std::unordered_map<std::string, Tensor>*   
                                            &gpt_decoder_layer_weight->at(l)->self_attention_weights);
 
             if (is_final == false) {
-                if (use_gptj_residual_) {
+                /*if (use_gptj_residual_) {
                     invokeGeneralLayerNorm(decoder_normed_input_,
                                            layer_input,
                                            gpt_decoder_layer_weight->at(l)->post_attention_layernorm_weights.gamma,
@@ -406,7 +406,7 @@ void LlamaContextDecoder<T>::forward(std::unordered_map<std::string, Tensor>*   
                                            0,
                                            stream_);
                 }
-                else {
+                else */{
                     invokeGeneralAddResidualT5PreLayerNorm(
                         self_attn_output_,
                         decoder_normed_input_,

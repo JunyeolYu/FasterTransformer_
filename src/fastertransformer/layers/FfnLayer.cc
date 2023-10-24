@@ -74,11 +74,11 @@ void FfnLayer<T>::forward(TensorMap* output_tensors, TensorMap* input_tensors, c
                  && !output_tensors->isExist("expanded_source_row_to_expanded_dest_row")
                  && !output_tensors->isExist("expert_for_source_row")));
 
-    if (use_moe) {
+    /*if (use_moe) {
         expert_scales    = output_tensors->at("expert_scales").getPtr<T>();
         permuted_rows    = output_tensors->at("expanded_source_row_to_expanded_dest_row").getPtr<int>();
         permuted_experts = output_tensors->at("expert_for_source_row").getPtr<int>();
-    }
+    }*/
 
     // TODO: INT8 and Sparsity are currently not implemented (geglu or reglu)
     const bool use_gated_activation = use_gated_activation_ && ffn_weights->intermediate_weight2.kernel != nullptr;
@@ -89,7 +89,7 @@ void FfnLayer<T>::forward(TensorMap* output_tensors, TensorMap* input_tensors, c
 
     const int* ia3_tasks = input_tensors->getPtr<const int>("ia3_tasks", nullptr);
 
-    if (use_moe) {
+    /*if (use_moe) {
         PUSH_RANGE("FFN moe");
         FT_CHECK(ia3_tasks == nullptr);
         cublas_wrapper_->Gemm(CUBLAS_OP_N,
@@ -167,7 +167,7 @@ void FfnLayer<T>::forward(TensorMap* output_tensors, TensorMap* input_tensors, c
         sync_check_cuda_error();
         POP_RANGE;
         return;
-    }
+    }*/
 
     PUSH_RANGE("FFN gemm 1");
     int m_tmp = input_tensors->at("ffn_input").shape[0];
@@ -195,7 +195,7 @@ void FfnLayer<T>::forward(TensorMap* output_tensors, TensorMap* input_tensors, c
 #endif
     }
     else {
-        if (int8_mode_ == 1) {
+        /*if (int8_mode_ == 1) {
             FT_CHECK_WITH_INFO(weight_only_int8_fc_runner_.get() != NULL, "weight only runner was not initialized.");
             FT_CHECK(ffn_weights->intermediate_weight.int8_kernel != NULL
                      && ffn_weights->intermediate_weight.weight_only_quant_scale != NULL);
@@ -261,7 +261,7 @@ void FfnLayer<T>::forward(TensorMap* output_tensors, TensorMap* input_tensors, c
                                       inter_size_,
                                       ffn_weights->intermediate_weight.scale_inter);
         }
-        else {
+        else */ {
             cublas_wrapper_->Gemm(CUBLAS_OP_N,
                                   CUBLAS_OP_N,
                                   inter_size_,
@@ -273,19 +273,17 @@ void FfnLayer<T>::forward(TensorMap* output_tensors, TensorMap* input_tensors, c
                                   hidden_units_,
                                   inter_buf_,
                                   inter_size_);
-            if (use_gated_activation) {
-                cublas_wrapper_->Gemm(CUBLAS_OP_N,
-                                      CUBLAS_OP_N,
-                                      inter_size_,
-                                      m,
-                                      hidden_units_,
-                                      ffn_weights->intermediate_weight2.kernel,
-                                      inter_size_,
-                                      input_tensor,
-                                      hidden_units_,
-                                      inter_buf_2_,
-                                      inter_size_);
-            }
+            cublas_wrapper_->Gemm(CUBLAS_OP_N,
+                                    CUBLAS_OP_N,
+                                    inter_size_,
+                                    m,
+                                    hidden_units_,
+                                    ffn_weights->intermediate_weight2.kernel,
+                                    inter_size_,
+                                    input_tensor,
+                                    hidden_units_,
+                                    inter_buf_2_,
+                                    inter_size_);
         }
     }
 
@@ -327,7 +325,7 @@ void FfnLayer<T>::forward(TensorMap* output_tensors, TensorMap* input_tensors, c
 #endif
     }
     else {
-        if (int8_mode_ == 1) {
+        /*if (int8_mode_ == 1) {
             FT_CHECK_WITH_INFO(weight_only_int8_fc_runner_.get() != NULL, "weight only runner was not initialized.");
             FT_CHECK(ffn_weights->output_weight.int8_kernel != NULL
                      && ffn_weights->output_weight.weight_only_quant_scale != NULL);
@@ -356,7 +354,7 @@ void FfnLayer<T>::forward(TensorMap* output_tensors, TensorMap* input_tensors, c
                                   0,
                                   stream_);
         }
-        else {
+        else */{
             cublas_wrapper_->Gemm(CUBLAS_OP_N,
                                   CUBLAS_OP_N,
                                   hidden_units_,
@@ -373,9 +371,9 @@ void FfnLayer<T>::forward(TensorMap* output_tensors, TensorMap* input_tensors, c
     sync_check_cuda_error();
     POP_RANGE;
 
-    if (is_free_buffer_after_forward_ == true) {
-        freeBuffer();
-    }
+    // if (is_free_buffer_after_forward_ == true) {
+    //     freeBuffer();
+    // }
     sync_check_cuda_error();
 }
 
