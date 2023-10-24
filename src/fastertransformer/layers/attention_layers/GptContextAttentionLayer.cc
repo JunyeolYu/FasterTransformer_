@@ -86,7 +86,7 @@ void GptContextAttentionLayer<T>::forward(TensorMap*                output_tenso
     constexpr bool use_sparse = false;
 #endif
 
-    if (use_sparse) {
+    /*if (use_sparse) {
 #ifdef SPARSITY_ENABLED
         cublas_wrapper_->SpGemm(CUBLAS_OP_N,
                                 CUBLAS_OP_N,
@@ -126,7 +126,7 @@ void GptContextAttentionLayer<T>::forward(TensorMap*                output_tenso
                                   attention_weights->query_weight.scale_inter,
                                   true);
     }
-    else {
+    else */{
         cublas_wrapper_->Gemm(CUBLAS_OP_N,
                               CUBLAS_OP_N,
                               3 * local_hidden_units_,  // n
@@ -395,9 +395,9 @@ void GptContextAttentionLayer<T>::forward(TensorMap*                output_tenso
         POP_RANGE;
     }
 
-    if (is_free_buffer_after_forward_ == true) {
-        freeBuffer();
-    }
+    // if (is_free_buffer_after_forward_ == true) {
+    //     freeBuffer();
+    // }
     sync_check_cuda_error();
     FT_LOG_DEBUG("%s stop", __PRETTY_FUNCTION__);
 }

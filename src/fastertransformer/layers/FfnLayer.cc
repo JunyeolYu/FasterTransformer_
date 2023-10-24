@@ -181,7 +181,7 @@ void FfnLayer<T>::forward(TensorMap* output_tensors, TensorMap* input_tensors, c
     constexpr bool use_sparse_gemm = false;
 #endif
 
-    if (use_sparse_gemm) {
+    /*if (use_sparse_gemm) {
         FT_CHECK(!use_gated_activation);
 #ifdef SPARSITY_ENABLED
         cublas_wrapper_->SpGemm(CUBLAS_OP_N,
@@ -195,7 +195,7 @@ void FfnLayer<T>::forward(TensorMap* output_tensors, TensorMap* input_tensors, c
 #endif
     }
     else {
-        /*if (int8_mode_ == 1) {
+        if (int8_mode_ == 1) {
             FT_CHECK_WITH_INFO(weight_only_int8_fc_runner_.get() != NULL, "weight only runner was not initialized.");
             FT_CHECK(ffn_weights->intermediate_weight.int8_kernel != NULL
                      && ffn_weights->intermediate_weight.weight_only_quant_scale != NULL);
@@ -285,7 +285,7 @@ void FfnLayer<T>::forward(TensorMap* output_tensors, TensorMap* input_tensors, c
                                     inter_buf_2_,
                                     inter_size_);
         }
-    }
+    // }
 
     POP_RANGE;
 
