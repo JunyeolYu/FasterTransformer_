@@ -47,3 +47,7 @@ cd /workspace/FasterTransformer_/examples/pytorch/llama
 
 chmod 777 exec_evaluation.sh && bash exec_evaluation.sh
 ```
+
+## Killilng Backgounrd Preprocessing Process
+- If a port connection is performed in the main process before the binding is performed in the preprocessing process, an error can occur (but this happens almost rarely)
+- Before running again, it is recommended to execute the `ps -a` command, then `kill -9 pythonpid`
