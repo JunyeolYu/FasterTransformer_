@@ -45,20 +45,20 @@ void Llama<T>::initialize()
                                                       custom_all_reduce_comm_,
                                                       enable_custom_all_reduce_);
 
-    // parse env overrides
-    if (std::getenv("LLAMA_STREAM_CB_STEP") != nullptr) {
-        try {
-            int callback_step_from_env = stoi(
-                std::string(std::getenv("LLAMA_STREAM_CB_STEP"))
-                );
-            token_generated_cb_step_ = callback_step_from_env;
-            FT_LOG_INFO("Override stream callback step to %d from LLAMA_STREAM_CB_STEP",
-                token_generated_cb_step_);
-        } catch (...) {
-            FT_LOG_WARNING("convert LLAMA_STREAM_CB_STEP err, use default value %d",
-                token_generated_cb_step_);
-        }
-    }
+    // // parse env overrides
+    // if (std::getenv("LLAMA_STREAM_CB_STEP") != nullptr) {
+    //     try {
+    //         int callback_step_from_env = stoi(
+    //             std::string(std::getenv("LLAMA_STREAM_CB_STEP"))
+    //             );
+    //         token_generated_cb_step_ = callback_step_from_env;
+    //         FT_LOG_INFO("Override stream callback step to %d from LLAMA_STREAM_CB_STEP",
+    //             token_generated_cb_step_);
+    //     } catch (...) {
+    //         FT_LOG_WARNING("convert LLAMA_STREAM_CB_STEP err, use default value %d",
+    //             token_generated_cb_step_);
+    //     }
+    // }
 }
 
 template<typename T>
@@ -78,7 +78,7 @@ void Llama<T>::allocateBuffer(
 
     if (vocab_size_ != vocab_size_padded_) {
         padded_embedding_kernel_ =
-            (T*)(allocator_->reMalloc(padded_embedding_kernel_, sizeof(T) * hidden_units_ * vocab_size_padded_, true));
+            (T*)(allocator_->reMalloc(padded_embedding_kernel_, sizeof(T) * hidden_units_ * vocab_size_padded_, false));
         padded_embedding_kernel_ptr_ = padded_embedding_kernel_;
     }
 
@@ -98,8 +98,8 @@ void Llama<T>::allocateBuffer(
         (int*)(allocator_->reMalloc(tiled_prompt_lengths_buf_, sizeof(int) * batchxbeam, false));
 
     tiled_input_ids_buf_ =
-        (int*)(allocator_->reMalloc(tiled_input_ids_buf_, sizeof(int) * batchxbeam * max_input_len, true));
-    tiled_input_lengths_buf_ = (int*)(allocator_->reMalloc(tiled_input_lengths_buf_, sizeof(int) * batchxbeam, true));
+        (int*)(allocator_->reMalloc(tiled_input_ids_buf_, sizeof(int) * batchxbeam * max_input_len, false));
+    tiled_input_lengths_buf_ = (int*)(allocator_->reMalloc(tiled_input_lengths_buf_, sizeof(int) * batchxbeam, false));
 
     context_decoder_input_buf_  = (T*)(allocator_->reMalloc(
         context_decoder_input_buf_, sizeof(T) * batchxbeam * max_input_len * hidden_units_, false));
@@ -370,21 +370,21 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
     const size_t beam_width = output_tensors->at("output_ids").shape[1];
 
     PromptLearningType request_prompt_type = PromptLearningType::no_prompt;
-    int                valid_prompt_inputs = input_tensors->count("request_prompt_type")
-                              + input_tensors->count("request_prompt_lengths")
-                              + input_tensors->count("request_prompt_embedding");
+    // int                valid_prompt_inputs = input_tensors->count("request_prompt_type")
+    //                           + input_tensors->count("request_prompt_lengths")
+    //                           + input_tensors->count("request_prompt_embedding");
 
-    if (valid_prompt_inputs == 3) {
-        request_prompt_type = static_cast<PromptLearningType>(input_tensors->at("request_prompt_type").getVal<int>());
-        FT_LOG_INFO("Apply prompt embedding from input, will ignore task name ids");
-    }
-    else if (valid_prompt_inputs > 0) {
-        FT_LOG_WARNING(
-            "Prompts not applied: request_prompt_embedding, request_prompt_lengths, request_prompt_type are all needed!");
-    }
-    if (request_prompt_type == PromptLearningType::prefix_prompt) {
-        FT_LOG_WARNING("Request prompt doesn't support prefix prompt currently!");
-    }
+    // if (valid_prompt_inputs == 3) {
+    //     request_prompt_type = static_cast<PromptLearningType>(input_tensors->at("request_prompt_type").getVal<int>());
+    //     FT_LOG_INFO("Apply prompt embedding from input, will ignore task name ids");
+    // }
+    // else if (valid_prompt_inputs > 0) {
+    //     FT_LOG_WARNING(
+    //         "Prompts not applied: request_prompt_embedding, request_prompt_lengths, request_prompt_type are all needed!");
+    // }
+    // if (request_prompt_type == PromptLearningType::prefix_prompt) {
+    //     FT_LOG_WARNING("Request prompt doesn't support prefix prompt currently!");
+    // }
 
     // Prefix Prompt Inputs
     // Padding works as follows: p p x x i i i x x --> p p i i i x x x x (p denotes prompt, i denotes input, x denotes
@@ -450,18 +450,18 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
     const size_t max_seq_len        = max_output_seq_len;
     // max cache seq len should include max prefix prompt length as it has k/v states
     const size_t max_cache_seq_len = max_output_seq_len; /*max_prefix_prompt_length;*/
-    if (max_cache_seq_len < max_seq_len) {
-        FT_LOG_WARNING("max_cache_seq_len (%d) is less than max_seq_len (%d). "
-                       "Note that this reduces the memory cost of k/v cache, but may hurt the accuracy.",
-                       max_cache_seq_len,
-                       max_seq_len);
-    }
-    else if (max_cache_seq_len > max_seq_len) {
-        FT_LOG_WARNING("max_cache_seq_len (%d) is larger than max_seq_len (%d). "
-                       "This may lead to additional memory cost. Suggest to use smaller max_cache_seq_len.",
-                       max_cache_seq_len,
-                       max_seq_len);
-    }
+    // if (max_cache_seq_len < max_seq_len) {
+    //     FT_LOG_WARNING("max_cache_seq_len (%d) is less than max_seq_len (%d). "
+    //                    "Note that this reduces the memory cost of k/v cache, but may hurt the accuracy.",
+    //                    max_cache_seq_len,
+    //                    max_seq_len);
+    // }
+    // else if (max_cache_seq_len > max_seq_len) {
+    //     FT_LOG_WARNING("max_cache_seq_len (%d) is larger than max_seq_len (%d). "
+    //                    "This may lead to additional memory cost. Suggest to use smaller max_cache_seq_len.",
+    //                    max_cache_seq_len,
+    //                    max_seq_len);
+    // }
     const cudaDataType_t gemm_data_type = getCudaDataType<T>();
     allocateBuffer(
         batch_size, beam_width, max_seq_len, max_cache_seq_len, max_input_length + max_prefix_soft_prompt_length);
@@ -594,6 +594,7 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
 
         // lm_head linear
         // Expected output tensor size is (bs, seq_len, vocab_size)
+        cublas_wrapper_->setFP16GemmConfig();
         cublas_wrapper_->Gemm(CUBLAS_OP_T,
                                 CUBLAS_OP_N,
                                 vocab_size_padded_,  // m = output row
@@ -606,6 +607,8 @@ void Llama<T>::forward(std::unordered_map<std::string, Tensor>*       output_ten
                                 output_tensors->at("logits_buf").getPtr<half>(),
                                 vocab_size_padded_
                                 );
+        
+
         // Print tenser for debugging
         // for (int bs = 0; bs < batch_size; bs++) {
         //     for(int i = max_input_length-2; i<max_input_length; i++) {

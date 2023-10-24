@@ -142,9 +142,9 @@ std::vector<th::Tensor> LlamaOp::forward(th::Tensor               input_ids,
                    return_cum_log_probs_opt,
                    return_output_log_probs_opt);
     if (return_cum_log_probs > 0) {
-        return std::vector<th::Tensor>{output_ids, sequence_lengths, cum_log_probs, output_log_probs};
+        return std::vector<th::Tensor>{output_ids, cum_log_probs, output_log_probs};
     }
-    return std::vector<th::Tensor>{output_ids, sequence_lengths, output_log_probs};
+    return std::vector<th::Tensor>{output_ids, output_log_probs};
 }
 
 }  // namespace torch_ext

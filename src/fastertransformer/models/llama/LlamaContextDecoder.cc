@@ -306,16 +306,16 @@ void LlamaContextDecoder<T>::forward(std::unordered_map<std::string, Tensor>*   
             const bool is_final     = false;  // TODO(bhsueh) remove this flag
             T*         layer_input  = decoder_layer_output_;
             T*         layer_output = decoder_layer_output_;
-            if (!is_unpadded_mha) {
-                if (l == 0) {
-                    layer_input = decoder_input;
-                    layer_input += ite * local_batch_size * seq_len * hidden_units_;
-                }
-                if (l == num_layer_ - 1) {
-                    layer_output = decoder_output;
-                    layer_output += ite * local_batch_size * seq_len * hidden_units_;
-                }
-            }
+            // if (!is_unpadded_mha) {
+            //     if (l == 0) {
+            //         layer_input = decoder_input;
+            //         layer_input += ite * local_batch_size * seq_len * hidden_units_;
+            //     }
+            //     if (l == num_layer_ - 1) {
+            //         layer_output = decoder_output;
+            //         layer_output += ite * local_batch_size * seq_len * hidden_units_;
+            //     }
+            // }
 
             if (isFirstLayerParallelId(l) && pipeline_para_.rank_ != 0 && pipeline_para_.world_size_ > 1) {
                 int data_size = h_token_num * hidden_units_ / tensor_para_.world_size_;
@@ -324,9 +324,9 @@ void LlamaContextDecoder<T>::forward(std::unordered_map<std::string, Tensor>*   
                            pipeline_para_.rank_ - 1,
                            pipeline_para_,
                            stream_);
-                if (tensor_para_.world_size_ > 1) {
-                    ftNcclAllGather(layer_input, layer_input, data_size, tensor_para_.rank_, tensor_para_, stream_);
-                }
+                // if (tensor_para_.world_size_ > 1) {
+                //     ftNcclAllGather(layer_input, layer_input, data_size, tensor_para_.rank_, tensor_para_, stream_);
+                // }
             }
 
             invokeGeneralT5LayerNorm(decoder_normed_input_,
@@ -429,29 +429,30 @@ void LlamaContextDecoder<T>::forward(std::unordered_map<std::string, Tensor>*   
                 ffn_layer_->forward(
                     &ffn_output_tensors, &ffn_input_tensors, &gpt_decoder_layer_weight->at(l)->ffn_weights);
 
-                if (use_gptj_residual_) {
-                    // Original workflow:
-                    //      layer_output = layer_input + reduceSum(ffn_output + self_attn_output + ffn_output_bias)
-                    // Our workflow:
-                    //      layer_output = reduceSum(ffn_output + self_attn_output + ffn_output_bias + layer_input /
-                    //      TP_size)
-                    // They are equivalent on math, but we can use same buffer for layer_input and layer_output
+                // if (use_gptj_residual_) {
+                //     // Original workflow:
+                //     //      layer_output = layer_input + reduceSum(ffn_output + self_attn_output + ffn_output_bias)
+                //     // Our workflow:
+                //     //      layer_output = reduceSum(ffn_output + self_attn_output + ffn_output_bias + layer_input /
+                //     //      TP_size)
+                //     // They are equivalent on math, but we can use same buffer for layer_input and layer_output
 
-                    invokeAddBiasAttentionFfnResidual(layer_output,
-                                                      ffn_output_,
-                                                      self_attn_output_,
-                                                      layer_input,
-                                                      gpt_decoder_layer_weight->at(l)->ffn_weights.output_weight.bias,
-                                                      h_token_num,
-                                                      hidden_units_,
-                                                      tensor_para_.world_size_,
-                                                      stream_);
-                    if (tensor_para_.world_size_ > 1) {
-                        ftNcclAllReduceSum(
-                            layer_output, layer_output, h_token_num * hidden_units_, tensor_para_, stream_);
-                    }
-                }
-                else {
+                //     invokeAddBiasAttentionFfnResidual(layer_output,
+                //                                       ffn_output_,
+                //                                       self_attn_output_,
+                //                                       layer_input,
+                //                                       gpt_decoder_layer_weight->at(l)->ffn_weights.output_weight.bias,
+                //                                       h_token_num,
+                //                                       hidden_units_,
+                //                                       tensor_para_.world_size_,
+                //                                       stream_);
+                //     // if (tensor_para_.world_size_ > 1) {
+                //     //     ftNcclAllReduceSum(
+                //     //         layer_output, layer_output, h_token_num * hidden_units_, tensor_para_, stream_);
+                //     // }
+                // }
+                // else 
+                {
                     invokeAddBiasResidual(layer_output,
                                           self_attn_output_,
                                           gpt_decoder_layer_weight->at(l)->ffn_weights.output_weight.bias,
@@ -485,14 +486,14 @@ void LlamaContextDecoder<T>::forward(std::unordered_map<std::string, Tensor>*   
     }
 
     // TODO(bhsueh) We could optimize this point by only computing the last token for the last layer
-    invokeLookupHiddenStateOfLastToken(output_tensors->at("last_token_hidden_units").getPtr<T>(),
-                                       output_tensors->at("decoder_output").getPtr<T>(),
-                                       input_tensors->at("input_lengths").getPtr<int>(),
-                                       seq_len,
-                                       batch_size,
-                                       hidden_units_,
-                                       stream_);
-    sync_check_cuda_error();
+    // invokeLookupHiddenStateOfLastToken(output_tensors->at("last_token_hidden_units").getPtr<T>(),
+    //                                    output_tensors->at("decoder_output").getPtr<T>(),
+    //                                    input_tensors->at("input_lengths").getPtr<int>(),
+    //                                    seq_len,
+    //                                    batch_size,
+    //                                    hidden_units_,
+    //                                    stream_);
+    // sync_check_cuda_error();
     if (is_free_buffer_after_forward_ == true) {
         freeBuffer();
     }

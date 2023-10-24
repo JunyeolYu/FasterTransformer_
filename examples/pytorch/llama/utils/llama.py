@@ -325,15 +325,15 @@ class Llama(nn.Module):
                                      1) # optional, output_log_probs
 
         if return_cum_log_probs == 0:
-            output_ids, output_lengths, output_log_probs = outputs
+            output_ids, output_log_probs = outputs
         else:
-            output_ids, output_lengths, output_cum_log_probs, output_log_probs = outputs
+            output_ids, output_cum_log_probs, output_log_probs = outputs
             
         if return_output_length:
             if return_cum_log_probs > 0:
-                return output_ids, output_lengths, output_cum_log_probs, output_log_probs
+                return output_ids, output_cum_log_probs, output_log_probs
             else:
-                return output_ids, output_lengths, output_log_probs
+                return output_ids, output_log_probs
         else:
             return output_ids
 

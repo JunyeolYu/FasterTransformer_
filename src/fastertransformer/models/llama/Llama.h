@@ -108,7 +108,7 @@ protected:
     void*         token_generated_ctx_ = nullptr;
 
     // callback step
-    size_t token_generated_cb_step_ = 5; // default 5, override by env LLAMA_STREAM_CB_STEP
+    // size_t token_generated_cb_step_ = 5; // default 5, override by env LLAMA_STREAM_CB_STEP
 
     void sendTensorsToFirstPipelineNode(std::unordered_map<std::string, Tensor>*       output_tensors,
                                         const std::unordered_map<std::string, Tensor>* input_tensors);

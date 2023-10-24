@@ -188,7 +188,7 @@ void GptContextAttentionLayer<T>::forward(TensorMap*                output_tenso
     //                             stream_);
     // IDEA : after this, k_cache = (batch_size, num_heads, Dh/x, prefix_prompt_len + L, x)
     // k_cache = (batch_size, num_heads, prefix_prompt_len + L, Dh)
-    sync_check_cuda_error();
+    // sync_check_cuda_error();
 
     // TODO: fmha kernels doesn't support different seq lengths of q and kv
     if (attention_type == AttentionType::FUSED_MHA) {

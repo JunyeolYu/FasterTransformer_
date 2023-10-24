@@ -208,7 +208,7 @@ def main():
             # PGJ: return_output_length를 True로, return_cum_log_probs를 0이 아니게 주면
             # forward 시 (output_ids, output_lengths, output_cum_log_probs)로 반환
             batch_size = len(prompts)
-            tokens_batch, output_lengths, output_log_probs = llama(
+            tokens_batch, output_log_probs = llama(
                 start_ids=tokens,
                 start_lengths=start_lengths,
                 output_len=0,
@@ -232,7 +232,7 @@ def main():
                     _input = prompt[1] -1 - min_tok 
                     logits = logits[_input:_input+prompt[-1]]  # [1, seq, vocab]
                     ending = torch.tensor(prompt[4], dtype=torch.long, device='cuda').view(-1,1)
-                    answer = torch.gather(logits, 1, ending).sum().cuda()  # [1, ]
+                    answer = torch.gather(logits, 1, ending).sum()  # [1, ]
                     _res.append(answer)
                 # temp = []
                 for prompt, ans in zip(prompts, _res):
