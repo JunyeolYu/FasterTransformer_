@@ -20,21 +20,20 @@ It aims to efficiently perform LLaMA-30B model inference using Fastertransformer
 - Adjusting batch size with more bins (more suitable, fine-grained) * ***Update during 2nd round*** *
 
 ## Setup
-In a container with `pytorch-23.05-py3` image,
+In a container with `junyeolyu/torch:2.0.1` image,
 
 #### Partitioning Model Weights
 ```bash
-cd /ft_workspace/FasterTransformer
-sudo mkdir models && sudo chmod -R 777 ./*
-python ./examples/cpp/llama/huggingface_llama_convert.py -saved_dir=./models/llama -in_file=$MODEL_PATH -infer_gpu_num=4 -weight_data_type=fp16 -model_name=llama
+cd FasterTransformer_
+sudo mkdir -p models && sudo chmod -R 777 ./*
+python ./examples/cpp/llama/huggingface_llama_convert.py -saved_dir=./models/llama -in_file=$MODEL_PATH -infer_gpu_num=4 -trained_gpu_num=4 -weight_data_type=fp16 -model_name=llama
 ```
 #### Build
 ```bash
-cd /workspace/FasterTransformer_
+cd FasterTransformer_
 mkdir build && cd build
 git submodule init && git submodule update
 pip3 install fire jax jaxlib transformers datasets sentencepiece numpysocket
-apt-get install bc
 
 CUDAFLAGS="-include stdio.h" cmake -DSM=70 -DCMAKE_BUILD_TYPE=Release -DBUILD_PYT=ON -DBUILD_MULTI_GPU=ON -D PYTHON_PATH=/usr/bin/python3 ..
 make -j$(nproc)
@@ -43,11 +42,13 @@ make -j$(nproc)
 ## Inference
 ```bash
 export $CKPT_PATH="" && export $TOKENIZER_PATH="" && export $LIB_PATH=""
+apt-get install bc
 cd /workspace/FasterTransformer_/examples/pytorch/llama
 
-chmod 777 exec_evaluation.sh && bash exec_evaluation.sh
+chmod 777 exec_evaluation.sh
+FMHA_ENABLE=ON ./exec_evaluation.sh
 ```
 
 ## Killilng Backgounrd Preprocessing Process
 - If a port connection is performed in the main process before the binding is performed in the preprocessing process, an error can occur (but this happens almost rarely)
-- Before running again, it is recommended to execute the `ps -a` command, then `kill -9 pythonpid`
+- Before running again, it is recommended to execute the `ps -a` command, then `kill -9 $(pidof python)`
